@@ -1,6 +1,6 @@
 # Standing Desk Interval Coach
 
-**AppADay 166** · Category H (Health) · No AI
+**AppADay 166** | Category H (Health) | No AI
 
 A sit, stand, and walk interval timer for desk work with a walking pad. Pick a preset, press Start, and the screen shifts color and chimes when it is time to change posture. Everything stays on your device.
 
@@ -15,9 +15,11 @@ A sit, stand, and walk interval timer for desk work with a walking pad. Pick a p
 
 **Nudges.** Each posture has its own Web Audio chime (Sit descends, Stand rises, Walk plays three rising notes, Break rings a bell) and its own vibration pattern on phones that support it. A pulse overlay flashes the color of the next posture. Reminders repeat every 2 minutes of overtime, up to 3 more times. Optional notifications fire when the tab is hidden (desktop and Android only).
 
-**Walking pad speed.** Speed runs from 0.5 to 4.0 mph in 0.1 steps and can be set in three places: a default speed in Settings (with an Apply to all presets button), a speed on each Walk row of the preset editor, and large minus and plus buttons on the Walk screen. Live changes are debounced for 1.5 seconds so a burst of taps creates one log boundary. Turn on Remember this speed to write the live speed back to the preset. Distance is computed from time and speed.
+**Walking pad speed.** Speed runs from 0.5 to 4.0 mph in 0.1 steps and can be set in three places: a default speed in Settings (with an Apply to all presets button), a speed on each Walk row of the preset editor, and large minus and plus buttons on the Walk screen. Live changes are debounced for 1.5 seconds so a burst of taps creates one log boundary. Incline (0 to 15 percent in half steps) has a default in Settings and its own stepper on the Walk screen, debounced together with speed. Turn on Remember this speed and incline to write the live settings back to the preset. Distance is computed from time and speed.
 
-**Posture chips.** Before a session, tapping Sit, Stand, or Walk only selects the posture to begin with (tap again to clear it); nothing starts or logs until you press Start. Selecting Walk shows the speed controls so you can set a starting speed first. During a session, a chip switches posture right away, and the plan picks up afterward at the next segment with a different posture.
+**Calories.** Enter your body weight (lb or kg) in Settings to see approximate calories. Sitting at a desk uses 1.3 METs and standing desk work 1.8 METs (Compendium of Physical Activities), and breaks count at the sitting rate. Walking uses the ACSM walking equation, VO2 = 3.5 + 0.1 x speed + 1.8 x speed x grade (speed in meters per minute), at about 5 kcal per liter of oxygen, so both pad speed and incline change the burn. The Today panel shows total calories, the extra burned versus sitting the whole time, the standing and walking shares of that extra, and sit and stand calories per hour at your weight. The Walk screen shows calories per hour at the current settings and the running total for the current walk. These are population estimates, not measurements.
+
+**Posture chips.** Before a session, tapping Sit, Stand, or Walk only selects the posture to begin with (tap again to clear it); nothing starts or logs until you press Start. Selecting Walk shows the speed and incline controls so you can set them first. During a session, a chip switches posture right away, and the plan picks up afterward at the next segment with a different posture.
 
 **Stats.** Today's sit, stand, walk, and break minutes, miles, and switch count; a progress bar toward the daily stand plus walk goal (60 minutes by default); a timeline bar with hour ticks; Last 7 Days stacked bars; and a streak. Choose your streak days in Settings by tapping any combination of the seven days, or use the Weekdays, Every day, Mon Wed Fri, and Tue Thu shortcuts (Weekdays is the default). A day off your schedule never breaks the streak but still counts if you meet the goal, and today stays pending until midnight. Entries that cross midnight are split between days.
 

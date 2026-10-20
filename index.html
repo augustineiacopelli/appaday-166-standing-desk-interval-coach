@@ -106,6 +106,17 @@ main{flex:1;width:100%;max-width:72rem;margin:0 auto;padding:1rem;padding-left:m
 .speedval{font-family:Sora,sans-serif;font-weight:800;font-size:clamp(2.4rem,11vw,3rem);line-height:1;font-variant-numeric:tabular-nums;min-width:4.2ch}
 .speedval small{font-size:.38em;font-weight:600;color:var(--muted);margin-left:.25em}
 .speedmeta{font-size:.85rem;color:var(--muted)}
+.inclrow{display:flex;align-items:center;justify-content:space-between;width:100%;gap:.6rem;font-weight:600}
+.cal{border-radius:14px;background:rgba(0,0,0,.18);border:1px solid var(--line);padding:.8rem 1rem;display:flex;flex-direction:column;gap:.45rem}
+.cal .ch{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.cal .big{font-family:Sora,sans-serif;font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.cal .big small{font-size:.5em;font-weight:600;color:var(--muted);margin-left:.25em}
+.cal .plus{font-family:Sora,sans-serif;font-weight:700;color:#6ee7a0;font-variant-numeric:tabular-nums}
+.cal .row{display:flex;justify-content:space-between;font-size:.88rem;color:var(--muted);gap:.6rem}
+.cal .row b{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+.cal .row i{display:inline-block;width:.6rem;height:.6rem;border-radius:2px;margin-right:.4rem}
+.cal .lbl{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cal .btn{align-self:flex-start}
 .caution{font-size:.85rem;color:#ffd98a;display:flex;gap:.4rem;align-items:flex-start;text-align:left}
 
 .due{width:100%;max-width:26rem;border-radius:18px;padding:1rem;background:rgba(0,0,0,.28);border:2px solid var(--nextc,#fff);display:flex;flex-direction:column;gap:.7rem;align-items:center}
@@ -253,8 +264,9 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
         <div class="speedval" id="speedVal" aria-live="polite">1.5<small>mph</small></div>
         <button class="sbtn" id="spdPlus" type="button" aria-label="Faster">+</button>
       </div>
+      <div class="inclrow"><span>Incline</span><div class="stepper"><button type="button" id="incMinus" aria-label="Lower incline">&minus;</button><output id="inclVal">0%</output><button type="button" id="incPlus" aria-label="Raise incline">+</button></div></div>
       <div class="speedmeta" id="speedMeta"></div>
-      <label class="tog" id="rememberRow"><span class="tt">Remember this speed<small>Later cycles start at this speed</small></span><input type="checkbox" id="rememberSpeed"><span class="sw"></span></label>
+      <label class="tog" id="rememberRow"><span class="tt">Remember this speed and incline<small>Later cycles start at these settings</small></span><input type="checkbox" id="rememberSpeed"><span class="sw"></span></label>
       <div class="caution"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Step off before adjusting speed or desk height.</span></div>
     </div>
 
@@ -279,6 +291,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
       <h2>Today</h2>
       <div class="tiles" id="tiles"></div>
     </div>
+    <div class="cal" id="calCard"></div>
     <div class="goal">
       <div class="gl"><span>Stand + walk goal</span><span id="goalText"></span></div>
       <div class="gbar"><i id="goalBar"></i></div>
@@ -332,7 +345,15 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
       <h4>Walking pad</h4>
       <div class="field"><span class="lab">Default speed<br><span class="unit">typing range 1.0 to 2.0 mph</span></span>
         <div class="stepper"><button type="button" id="defMinus" aria-label="Lower default speed">&minus;</button><output id="defSpeed">1.5 mph</output><button type="button" id="defPlus" aria-label="Raise default speed">+</button></div></div>
+      <div class="field"><span class="lab">Default incline<br><span class="unit">0 for a flat pad</span></span>
+        <div class="stepper"><button type="button" id="defIncMinus" aria-label="Lower default incline">&minus;</button><output id="defIncline">0%</output><button type="button" id="defIncPlus" aria-label="Raise default incline">+</button></div></div>
       <div class="btnrow"><button class="btn" id="applySpeed" type="button">Apply to all presets</button></div>
+    </div>
+
+    <div class="sec" id="calSec">
+      <h4>Calories</h4>
+      <div class="field"><label for="weight">Body weight</label><input class="inp num" id="weight" type="number" inputmode="decimal" min="0" max="700" step="1" placeholder="0"><select class="sel" id="weightUnit" aria-label="Weight unit"><option value="lb">lb</option><option value="kg">kg</option></select></div>
+      <p class="hint">Estimates only. Sitting at a desk uses 1.3 METs and standing desk work 1.8 METs (Compendium of Physical Activities). Walking uses the ACSM walking equation from your pad speed and incline. Breaks are counted at the sitting rate. Leave weight at 0 to hide calories.</p>
     </div>
 
     <div class="sec">
@@ -389,7 +410,8 @@ var MIN_MS = 60000 / SCALE;
 var REPEAT_MS = 2 * MIN_MS;
 var STALE_MS = 20 * 60000;
 var KEEP_MS = 120 * 86400000;
-var SPEED_MIN = 0.5, SPEED_MAX = 4.0;
+var SPEED_MIN = 0.5, SPEED_MAX = 4.0, INC_MIN = 0, INC_MAX = 15;
+var MET = { sit: 1.3, stand: 1.8, 'break': 1.3 };
 var DOT = ' \u00b7 ';
 var K = { settings: 'sdic-settings', presets: 'sdic-presets', state: 'sdic-state', log: 'sdic-log' };
 var POST = {
@@ -402,7 +424,7 @@ var COLORS = { sit: '#3E5C76', stand: '#D14D72', walk: '#2E8B6A', 'break': '#C99
 var INKS = { sit: '#fff', stand: '#fff', walk: '#fff', 'break': '#1c1505' };
 var ADHOC_DEFAULT = { sit: 20, stand: 15, walk: 10 };
 var DEFAULT_SETTINGS = {
-  defaultSpeed: 1.5, volume: 0.6, vibration: true, reminderRepeat: true, dailyGoal: 60,
+  defaultSpeed: 1.5, defaultIncline: 0, weight: 0, weightUnit: 'lb', volume: 0.6, vibration: true, reminderRepeat: true, dailyGoal: 60,
   activeDays: [false, true, true, true, true, true, false], notifications: false, activePresetId: 'cornell', rememberSpeed: false
 };
 
@@ -415,6 +437,7 @@ function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
 function $(id) { return document.getElementById(id); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+function roundIncline(v) { return clamp(Math.round((+v || 0) * 2) / 2, INC_MIN, INC_MAX); }
 function roundSpeed(v) { return clamp(Math.round(v * 10) / 10, SPEED_MIN, SPEED_MAX); }
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -454,6 +477,9 @@ function cleanSettings(s) {
   var o = {}, k;
   for (k in DEFAULT_SETTINGS) o[k] = (s && typeof s[k] === typeof DEFAULT_SETTINGS[k]) ? s[k] : DEFAULT_SETTINGS[k];
   o.defaultSpeed = roundSpeed(o.defaultSpeed);
+  o.defaultIncline = roundIncline(o.defaultIncline);
+  o.weight = clamp(Math.round((+o.weight || 0) * 10) / 10, 0, 700);
+  if (o.weightUnit !== 'kg') o.weightUnit = 'lb';
   o.volume = clamp(o.volume, 0, 1);
   o.dailyGoal = clamp(Math.round(o.dailyGoal), 5, 600);
   if (s && !Array.isArray(s.activeDays) && typeof s.weekdaysOnly === 'boolean') o.activeDays = s.weekdaysOnly ? DEFAULT_SETTINGS.activeDays.slice() : [true, true, true, true, true, true, true];
@@ -467,7 +493,7 @@ function cleanPresets(arr, spd) {
   var out = arr.filter(function (p) { return p && typeof p.id === 'string' && Array.isArray(p.segments); }).map(function (p) {
     var segs = p.segments.filter(function (s) { return s && POST[s.posture] && s.posture !== 'break'; }).map(function (s) {
       var o = { posture: s.posture, min: clamp(Math.round(+s.min || 1), 1, 240) };
-      if (s.posture === 'walk') o.speed = roundSpeed(+s.speed || spd);
+      if (s.posture === 'walk') { o.speed = roundSpeed(+s.speed || spd); if (s.incline !== undefined) o.incline = roundIncline(s.incline); }
       return o;
     });
     if (!segs.length) segs = [{ posture: 'sit', min: 20 }];
@@ -479,11 +505,11 @@ function cleanPresets(arr, spd) {
 function cleanLog(arr) {
   if (!Array.isArray(arr)) return [];
   return arr.filter(function (e) { return e && typeof e.start === 'number' && POST[e.posture] && (e.end === null || typeof e.end === 'number'); })
-    .map(function (e) { return { id: String(e.id || uid()), start: e.start, end: e.end, posture: e.posture, speed: e.posture === 'walk' ? (+e.speed || 0) : 0 }; });
+    .map(function (e) { return { id: String(e.id || uid()), start: e.start, end: e.end, posture: e.posture, speed: e.posture === 'walk' ? (+e.speed || 0) : 0, incline: e.posture === 'walk' ? roundIncline(e.incline) : 0 }; });
 }
 function freshState() {
   return { status: 'idle', presetId: settings.activePresetId, segIndex: 0, cycle: 1, segStartAt: 0, pausedMs: 0, pausedAt: 0,
-    plannedMs: 0, posture: 'sit', speed: 0, nudgeCount: 0, lastSeen: 0, inBreak: false, adhoc: false, adhocPosture: null, openId: null };
+    plannedMs: 0, posture: 'sit', speed: 0, incline: 0, nudgeCount: 0, lastSeen: 0, inBreak: false, adhoc: false, adhocPosture: null, openId: null };
 }
 
 var settings = cleanSettings(lsGet(K.settings, null));
@@ -521,7 +547,8 @@ function getPreset(id) {
 
 /* ---------- log ---------- */
 function openEntry(at) {
-  var e = { id: uid(), start: at, end: null, posture: state.posture, speed: state.posture === 'walk' ? state.speed : 0 };
+  var w = state.posture === 'walk';
+  var e = { id: uid(), start: at, end: null, posture: state.posture, speed: w ? state.speed : 0, incline: w ? state.incline : 0 };
   log.push(e); state.openId = e.id; saveLog();
 }
 function closeEntry(at) {
@@ -567,13 +594,21 @@ function adhocMinutes(posture, preset) {
   return ADHOC_DEFAULT[posture] || 15;
 }
 function segInfo(p, preset) {
-  if (p.inBreak) return { posture: 'break', min: preset.breakMin, speed: 0 };
+  if (p.inBreak) return { posture: 'break', min: preset.breakMin, speed: 0, incline: 0 };
   if (p.adhoc) {
-    var m = adhocMinutes(p.adhocPosture, preset);
-    return { posture: p.adhocPosture, min: m, speed: p.adhocPosture === 'walk' ? walkSpeedFor(p.adhocPosture, preset) : 0 };
+    var m = adhocMinutes(p.adhocPosture, preset), aw = p.adhocPosture === 'walk';
+    return { posture: p.adhocPosture, min: m, speed: aw ? walkSpeedFor(p.adhocPosture, preset) : 0, incline: aw ? walkInclineFor(preset) : 0 };
   }
-  var s = preset.segments[Math.min(p.segIndex, preset.segments.length - 1)];
-  return { posture: s.posture, min: s.min, speed: s.posture === 'walk' ? roundSpeed(s.speed || settings.defaultSpeed) : 0 };
+  var s = preset.segments[Math.min(p.segIndex, preset.segments.length - 1)], w = s.posture === 'walk';
+  return { posture: s.posture, min: s.min, speed: w ? roundSpeed(s.speed || settings.defaultSpeed) : 0,
+    incline: w ? (s.incline !== undefined ? roundIncline(s.incline) : settings.defaultIncline) : 0 };
+}
+function walkInclineFor(preset) {
+  for (var i = 0; i < preset.segments.length; i++) {
+    var sg = preset.segments[i];
+    if (sg.posture === 'walk') return sg.incline !== undefined ? roundIncline(sg.incline) : settings.defaultIncline;
+  }
+  return settings.defaultIncline;
 }
 function walkSpeedFor(posture, preset) {
   for (var i = 0; i < preset.segments.length; i++) if (preset.segments[i].posture === 'walk') return roundSpeed(preset.segments[i].speed || settings.defaultSpeed);
@@ -594,12 +629,14 @@ function elapsed(now) {
 function startSegment(now, speedOverride) {
   var preset = getPreset(state.presetId), info = segInfo(curPos(), preset);
   state.posture = info.posture; state.speed = info.speed;
+  state.incline = info.incline || 0;
   if (speedOverride && info.posture === 'walk') state.speed = roundSpeed(speedOverride);
-  pendingPosture = null; preSpeed = null;
+  if (preIncline !== null && info.posture === 'walk' && speedOverride) state.incline = preIncline;
+  pendingPosture = null; preSpeed = null; preIncline = null;
   state.plannedMs = info.min * MIN_MS;
   state.segStartAt = now; state.pausedMs = 0; state.pausedAt = 0; state.nudgeCount = 0;
   state.status = 'running'; state.lastSeen = now;
-  liveSpeed = state.speed;
+  liveSpeed = state.speed; liveIncline = state.incline;
   openEntry(now);
   saveState();
   wakeOn();
@@ -664,7 +701,7 @@ function endSession() {
   closeEntry(now);
   var keep = state.presetId;
   state = freshState(); state.presetId = keep;
-  pendingPosture = null; preSpeed = null;
+  pendingPosture = null; preSpeed = null; preIncline = null;
   saveState(); clearDue(); wakeOff(); hidePulse(); renderAll();
 }
 function switchPresetLive(id) {
@@ -786,25 +823,26 @@ function renderWake() {
 }
 
 /* ---------- live walking speed ---------- */
-var liveSpeed = state.speed, speedTimer = null;
-var pendingPosture = null, preSpeed = null;
-function nudgeSpeed(d) {
-  liveSpeed = roundSpeed((liveSpeed || settings.defaultSpeed) + d);
-  if (state.status === 'idle') { preSpeed = liveSpeed; renderSpeed(); return; }
+var liveSpeed = state.speed, liveIncline = state.incline || 0, speedTimer = null;
+var pendingPosture = null, preSpeed = null, preIncline = null;
+function queueCommit() {
+  if (state.status === 'idle') { preSpeed = liveSpeed; preIncline = liveIncline; renderSpeed(); return; }
   renderSpeed();
   if (speedTimer) clearTimeout(speedTimer);
   speedTimer = setTimeout(commitSpeed, 1500);
 }
+function nudgeSpeed(d) { liveSpeed = roundSpeed((liveSpeed || settings.defaultSpeed) + d); queueCommit(); }
+function nudgeIncline(d) { liveIncline = roundIncline(liveIncline + d); queueCommit(); }
 function commitSpeed() {
   speedTimer = null;
   if (state.posture !== 'walk' || state.status === 'idle') return;
-  if (Math.abs(liveSpeed - state.speed) < 0.01) return;
+  if (Math.abs(liveSpeed - state.speed) < 0.01 && Math.abs(liveIncline - state.incline) < 0.01) { renderSpeed(); return; }
   var now = Date.now();
-  if (state.status === 'running') { closeEntry(now); state.speed = liveSpeed; openEntry(now); }
-  else state.speed = liveSpeed;
+  if (state.status === 'running') { closeEntry(now); state.speed = liveSpeed; state.incline = liveIncline; openEntry(now); }
+  else { state.speed = liveSpeed; state.incline = liveIncline; }
   if (settings.rememberSpeed && !state.adhoc && !state.inBreak) {
     var preset = getPreset(state.presetId), seg = preset.segments[state.segIndex];
-    if (seg && seg.posture === 'walk') { seg.speed = state.speed; savePresets(); if (!$('settingsModal').hidden) renderEditor(); }
+    if (seg && seg.posture === 'walk') { seg.speed = state.speed; seg.incline = state.incline; savePresets(); if (!$('settingsModal').hidden) renderEditor(); }
   }
   saveState(); renderStats(); renderSpeed();
 }
@@ -815,19 +853,43 @@ function renderSpeed() {
   $('speedBox').hidden = !show;
   if (!show) return;
   $('speedVal').innerHTML = liveSpeed.toFixed(1) + '<small>mph</small>';
-  if (idleWalk) $('speedMeta').textContent = 'Starting speed. Press Start when you are on the pad.';
-  else $('speedMeta').textContent = (speedTimer ? 'Saving speed in a moment' : 'This walk: ' + sessionWalkMiles().toFixed(2) + ' mi');
+  $('inclVal').textContent = fmtIncline(liveIncline);
+  var kg = weightKg(), rate = kg ? kcalPerMin('walk', liveSpeed, liveIncline, kg) : 0;
+  var rateTxt = kg ? ' About ' + Math.round(rate * 60) + ' kcal/hr, ' + Math.round((rate - kcalPerMin('sit', 0, 0, kg)) * 60) + ' more than sitting.' : '';
+  if (idleWalk) $('speedMeta').textContent = 'Starting settings. Press Start when you are on the pad.' + rateTxt;
+  else if (speedTimer) $('speedMeta').textContent = 'Saving in a moment.' + rateTxt;
+  else {
+    var sw = sessionWalk();
+    $('speedMeta').textContent = 'This walk: ' + sw.miles.toFixed(2) + ' mi' + (kg ? DOT + Math.round(sw.kcal) + ' kcal (+' + Math.round(sw.extra) + ' vs sitting)' : '');
+  }
   $('rememberSpeed').checked = settings.rememberSpeed;
   $('rememberRow').hidden = idleWalk;
 }
-function sessionWalkMiles() {
-  var now = Date.now(), mi = 0;
+function sessionWalk() {
+  var now = Date.now(), o = { miles: 0, kcal: 0, extra: 0 }, kg = weightKg();
   for (var j = log.length - 1; j >= 0; j--) {
     var x = log[j];
     if (x.start < state.segStartAt) break;
-    if (x.posture === 'walk') mi += ((x.end === null ? now : x.end) - x.start) / 3600000 * x.speed;
+    if (x.posture !== 'walk') continue;
+    var mins = ((x.end === null ? now : x.end) - x.start) / 60000;
+    o.miles += mins / 60 * x.speed;
+    if (kg) { var k = kcalPerMin('walk', x.speed, x.incline || 0, kg) * mins; o.kcal += k; o.extra += k - kcalPerMin('sit', 0, 0, kg) * mins; }
   }
-  return mi;
+  return o;
+}
+
+/* ---------- calories ---------- */
+function weightKg() { return settings.weight > 0 ? (settings.weightUnit === 'kg' ? settings.weight : settings.weight * 0.45359237) : 0; }
+function fmtIncline(v) { return (v % 1 ? v.toFixed(1) : String(v)) + '%'; }
+/* Gross kcal per minute. Sit, stand, break: MET x 3.5 x kg / 200.
+   Walk: ACSM walking equation, VO2 (ml/kg/min) = 3.5 + 0.1 x S + 1.8 x S x G,
+   S in m/min, G as a fraction; about 5 kcal per liter of O2. */
+function kcalPerMin(posture, mph, incline, kg) {
+  if (posture === 'walk') {
+    var S = mph * 26.8224, vo2 = 3.5 + 0.1 * S + 1.8 * S * (incline / 100);
+    return vo2 * kg / 1000 * 5;
+  }
+  return (MET[posture] || 1.3) * 3.5 * kg / 200;
 }
 
 /* ---------- stats ---------- */
@@ -836,17 +898,24 @@ function entriesForDay(key, now) {
   var ds = dayStart(key), de = dayEnd(key), out = [];
   for (var i = 0; i < log.length; i++) {
     var e = log[i], s = Math.max(e.start, ds), en = Math.min(e.end === null ? now : e.end, de);
-    if (en > s) out.push({ posture: e.posture, speed: e.speed, start: s, end: en });
+    if (en > s) out.push({ posture: e.posture, speed: e.speed, incline: e.incline || 0, start: s, end: en });
   }
   out.sort(function (a, b) { return a.start - b.start; });
   return out;
 }
 function totalsFor(key, now) {
-  var t = { sit: 0, stand: 0, walk: 0, 'break': 0, miles: 0, switches: 0 }, list = entriesForDay(key, now), prev = null;
+  var t = { sit: 0, stand: 0, walk: 0, 'break': 0, miles: 0, switches: 0, kcal: 0, kcalSit: 0, standExtra: 0, walkExtra: 0 },
+    list = entriesForDay(key, now), prev = null, kg = weightKg(), sitRate = kg ? kcalPerMin('sit', 0, 0, kg) : 0;
   for (var i = 0; i < list.length; i++) {
     var e = list[i], h = (e.end - e.start) / 3600000;
     t[e.posture] += h * 60;
     if (e.posture === 'walk') t.miles += h * e.speed;
+    if (kg) {
+      var k = kcalPerMin(e.posture, e.speed, e.incline, kg) * h * 60, base = sitRate * h * 60;
+      t.kcal += k; t.kcalSit += base;
+      if (e.posture === 'stand') t.standExtra += k - base;
+      if (e.posture === 'walk') t.walkExtra += k - base;
+    }
     if (prev && prev !== e.posture) t.switches++;
     prev = e.posture;
   }
@@ -880,6 +949,7 @@ function renderStats() {
   var goal = settings.dailyGoal;
   $('goalText').innerHTML = '<b>' + Math.round(t.active) + '</b> of ' + goal + ' min';
   $('goalBar').style.width = Math.min(100, t.active / goal * 100) + '%';
+  renderCal(t);
   renderTimeline(t.list, today, now);
   renderWeek(today, now);
   var st = streakInfo(now);
@@ -888,6 +958,20 @@ function renderStats() {
     (st.todayMet ? 'Today counts. Goal met.'
       : st.todayActive ? 'Today is pending until midnight. ' + Math.max(0, Math.ceil(goal - t.active)) + ' min to go.'
       : 'Today is a rest day. Hit ' + goal + ' min and it still counts.');
+}
+function renderCal(t) {
+  var el = $('calCard'), kg = weightKg();
+  if (!kg) {
+    el.innerHTML = '<div class="lbl">Calories</div><div class="row"><span>Add your body weight to estimate calories from sitting, standing, and walking.</span></div><button class="btn" type="button" id="calSetup">Add weight</button>';
+    $('calSetup').addEventListener('click', function () { openSettings(); var w = $('weight'); w.scrollIntoView({ block: 'center' }); w.focus(); });
+    return;
+  }
+  var extra = t.standExtra + t.walkExtra, sr = kcalPerMin('sit', 0, 0, kg) * 60, st = kcalPerMin('stand', 0, 0, kg) * 60;
+  el.innerHTML = '<div class="ch"><span class="lbl">Calories today (approx)</span></div>' +
+    '<div class="ch"><span class="big">' + Math.round(t.kcal) + '<small>kcal</small></span><span class="plus">+' + Math.round(extra) + ' vs all sitting</span></div>' +
+    '<div class="row"><span><i class="p-stand"></i>Standing vs sitting</span><b>+' + Math.round(t.standExtra) + ' kcal</b></div>' +
+    '<div class="row"><span><i class="p-walk"></i>Walking vs sitting</span><b>+' + Math.round(t.walkExtra) + ' kcal</b></div>' +
+    '<div class="row"><span>Per hour</span><b>sit ' + Math.round(sr) + DOT + 'stand ' + Math.round(st) + ' kcal</b></div>';
 }
 function hourLabel(h) { var x = h % 24; return (x % 12 || 12) + (x < 12 ? 'a' : 'p'); }
 function renderTimeline(list, today, now) {
@@ -1018,6 +1102,9 @@ document.addEventListener('keydown', function (e) {
 function renderSettings() {
   renderPresetPicker(); renderEditor();
   $('defSpeed').textContent = settings.defaultSpeed.toFixed(1) + ' mph';
+  $('defIncline').textContent = fmtIncline(settings.defaultIncline);
+  $('weight').value = settings.weight || '';
+  $('weightUnit').value = settings.weightUnit;
   $('volume').value = Math.round(settings.volume * 100);
   $('vibration').checked = settings.vibration;
   $('reminderRepeat').checked = settings.reminderRepeat;
@@ -1133,13 +1220,26 @@ function stepDefault(d) {
   settings.defaultSpeed = roundSpeed(settings.defaultSpeed + d); saveSettings();
   $('defSpeed').textContent = settings.defaultSpeed.toFixed(1) + ' mph';
 }
+function stepIncDefault(d) {
+  settings.defaultIncline = roundIncline(settings.defaultIncline + d); saveSettings();
+  $('defIncline').textContent = fmtIncline(settings.defaultIncline);
+}
+$('defIncMinus').addEventListener('click', function () { stepIncDefault(-0.5); });
+$('defIncPlus').addEventListener('click', function () { stepIncDefault(0.5); });
+$('weight').addEventListener('change', function () { settings.weight = clamp(Math.round((+this.value || 0) * 10) / 10, 0, 700); this.value = settings.weight || ''; saveSettings(); renderStats(); renderSpeed(); });
+$('weightUnit').addEventListener('change', function () {
+  var nu = this.value;
+  if (nu !== settings.weightUnit && settings.weight > 0) settings.weight = Math.round((nu === 'kg' ? settings.weight * 0.45359237 : settings.weight / 0.45359237) * 10) / 10;
+  settings.weightUnit = nu; $('weight').value = settings.weight || ''; saveSettings(); renderStats(); renderSpeed();
+});
 $('defMinus').addEventListener('click', function () { stepDefault(-0.1); });
 $('defPlus').addEventListener('click', function () { stepDefault(0.1); });
 $('applySpeed').addEventListener('click', function () {
   var s = settings.defaultSpeed.toFixed(1);
-  ask({ title: 'Apply ' + s + ' mph everywhere?', body: 'Every Walk segment in every preset will be set to ' + s + ' mph.', ok: 'Apply' }).then(function (ok) {
+  var inc = fmtIncline(settings.defaultIncline);
+  ask({ title: 'Apply ' + s + ' mph and ' + inc + ' incline everywhere?', body: 'Every Walk segment in every preset will be set to ' + s + ' mph at ' + inc + ' incline.', ok: 'Apply' }).then(function (ok) {
     if (!ok) return;
-    presets.forEach(function (p) { p.segments.forEach(function (sg) { if (sg.posture === 'walk') sg.speed = settings.defaultSpeed; }); });
+    presets.forEach(function (p) { p.segments.forEach(function (sg) { if (sg.posture === 'walk') { sg.speed = settings.defaultSpeed; sg.incline = settings.defaultIncline; } }); });
     savePresets(); renderEditor(); renderTimer();
   });
 });
@@ -1225,7 +1325,7 @@ $('clearBtn').addEventListener('click', function () {
     if (speedTimer) { clearTimeout(speedTimer); speedTimer = null; }
     lsDel(K.settings); lsDel(K.presets); lsDel(K.state); lsDel(K.log);
     settings = cleanSettings(null); presets = builtinPresets(settings.defaultSpeed); log = []; state = freshState();
-    pendingPosture = null; preSpeed = null;
+    pendingPosture = null; preSpeed = null; preIncline = null;
     $('dataNote').textContent = 'All data cleared.';
     renderSettings(); renderAll();
   });
@@ -1246,17 +1346,24 @@ Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
     var p = c.getAttribute('data-p');
     if (state.status !== 'idle') { goAdhoc(p); return; }
     pendingPosture = pendingPosture === p ? null : p;
-    if (pendingPosture === 'walk') { preSpeed = preSpeed || walkSpeedFor('walk', getPreset(settings.activePresetId)); liveSpeed = preSpeed; }
+    if (pendingPosture === 'walk') {
+      var ap = getPreset(settings.activePresetId);
+      preSpeed = preSpeed || walkSpeedFor('walk', ap); liveSpeed = preSpeed;
+      if (preIncline === null) preIncline = walkInclineFor(ap);
+      liveIncline = preIncline;
+    }
     renderTimer();
   });
 });
 $('spdMinus').addEventListener('click', function () { nudgeSpeed(-0.1); });
 $('spdPlus').addEventListener('click', function () { nudgeSpeed(0.1); });
+$('incMinus').addEventListener('click', function () { nudgeIncline(-0.5); });
+$('incPlus').addEventListener('click', function () { nudgeIncline(0.5); });
 $('rememberSpeed').addEventListener('change', function () {
   settings.rememberSpeed = this.checked; saveSettings();
   if (this.checked && !speedTimer && state.status !== 'idle' && state.posture === 'walk' && !state.adhoc && !state.inBreak) {
     var seg = getPreset(state.presetId).segments[state.segIndex];
-    if (seg && seg.posture === 'walk') { seg.speed = state.speed; savePresets(); }
+    if (seg && seg.posture === 'walk') { seg.speed = state.speed; seg.incline = state.incline; savePresets(); }
   }
 });
 
