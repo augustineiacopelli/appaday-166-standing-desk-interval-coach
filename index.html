@@ -157,6 +157,7 @@ main{flex:1;width:100%;max-width:72rem;margin:0 auto;padding:1rem;padding-left:m
 .wd{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .wv{font-size:.75rem;font-variant-numeric:tabular-nums;font-weight:600}
 .wcol.met .wv{color:#6ee7a0}
+.wcol.met .wbar{box-shadow:0 0 0 2px #6ee7a0}
 .wcol.today .wd{color:var(--text);font-weight:700}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem .9rem;font-size:.78rem;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:.35rem}
@@ -304,7 +305,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
       <h2>Last 7 days</h2>
       <div class="week" id="week"></div>
       <div class="legend" style="margin-top:.6rem">
-        <span><i class="p-sit"></i>Sit</span><span><i class="p-stand"></i>Stand</span><span><i class="p-walk"></i>Walk</span><span><i class="p-break"></i>Break</span>
+        <span><i class="p-stand"></i>Stand</span><span><i class="p-walk"></i>Walk</span><span id="goalLegend">Bar fills at your 60 min goal</span>
       </div>
     </div>
     <div class="streak">
@@ -993,16 +994,19 @@ function renderTimeline(list, today, now) {
     (list.length ? '' : '<div class="empty">No time logged yet today. Press Start.</div>');
 }
 function renderWeek(today, now) {
-  var days = [], max = 60, i;
-  for (i = 6; i >= 0; i--) { var k = shiftKey(today, -i), t = totalsFor(k, now); t.key = k; days.push(t); max = Math.max(max, t.sit + t.stand + t.walk + t['break']); }
+  var days = [], i, goal = settings.dailyGoal;
+  for (i = 6; i >= 0; i--) { var k = shiftKey(today, -i), t = totalsFor(k, now); t.key = k; days.push(t); }
   var names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  $('goalLegend').textContent = 'Bar fills at your ' + goal + ' min goal';
   $('week').innerHTML = days.map(function (t) {
-    var bars = ['sit', 'stand', 'walk', 'break'].map(function (p) {
-      return t[p] > 0 ? '<i class="p-' + p + '" style="height:' + (t[p] / max * 100).toFixed(2) + '%"></i>' : '';
+    /* bars show stand + walk as progress toward the daily goal, full only when it is met */
+    var fit = t.active > goal ? goal / t.active : 1;
+    var bars = ['stand', 'walk'].map(function (p) {
+      return t[p] > 0 ? '<i class="p-' + p + '" style="height:' + Math.min(100, t[p] * fit / goal * 100).toFixed(2) + '%"></i>' : '';
     }).join('');
-    var met = t.active >= settings.dailyGoal, isT = t.key === today;
+    var met = t.active >= goal, isT = t.key === today;
     var lab = names[new Date(dayStart(t.key)).getDay()];
-    return '<div class="wcol' + (met ? ' met' : '') + (isT ? ' today' : '') + (isActiveDay(t.key) ? '' : ' rest') + '" title="' + t.key + ': stand and walk ' + Math.round(t.active) + ' min">' +
+    return '<div class="wcol' + (met ? ' met' : '') + (isT ? ' today' : '') + (isActiveDay(t.key) ? '' : ' rest') + '" title="' + t.key + ': stand ' + Math.round(t.stand) + ', walk ' + Math.round(t.walk) + ', sit ' + Math.round(t.sit) + ' min">' +
       '<div class="wbar">' + bars + '</div><div class="wv">' + Math.round(t.active) + '</div><div class="wd">' + (isT ? 'Today' : lab) + '</div></div>';
   }).join('');
 }
