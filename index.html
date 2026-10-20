@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="apple-touch-icon" href="https://augustineiacopelli.github.io/appaday/icons/166.png">
+<meta name="apple-mobile-web-app-title" content="Desk Coach">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="https://augustineiacopelli.github.io/appaday/manifests/166.webmanifest">
+<script src="https://augustineiacopelli.github.io/appaday/save.js" defer></script>
+<title>Standing Desk Interval Coach | AppADay 166</title>
+<meta name="description" content="A sit, stand, and walk interval timer for desk work with a walking pad. Presets, chime and color nudges, honest overtime, walking speed and distance, a daily timeline, and a streak. Stored on your device.">
+<meta name="theme-color" content="#121519">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#D14D72;
+  --sit:#3E5C76;--stand:#D14D72;--walk:#2E8B6A;--brk:#C99A2E;
+  --text:#eef1f5;--muted:#a5afbc;--line:rgba(255,255,255,.12);
+  --surface:rgba(255,255,255,.055);--surface2:rgba(255,255,255,.09);
+  --sheet:#1a1e25;--danger:#ff8f8f;
+  --r:18px;
+  --pc:var(--accent);--pc-ink:#fff;--tint:#121519;
+}
+body[data-posture="idle"]{--pc:var(--accent);--pc-ink:#fff;--tint:#121519}
+body[data-posture="sit"]{--pc:var(--sit);--pc-ink:#fff;--tint:#121b25}
+body[data-posture="stand"]{--pc:var(--stand);--pc-ink:#fff;--tint:#251319}
+body[data-posture="walk"]{--pc:var(--walk);--pc-ink:#fff;--tint:#0f2019}
+body[data-posture="break"]{--pc:var(--brk);--pc-ink:#1c1505;--tint:#241c0e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{background:#121519}
+body{margin:0;min-height:100vh;min-height:100dvh;background-color:var(--tint);transition:background-color .6s ease;
+  color:var(--text);font:1rem/1.45 "DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden;
+  display:flex;flex-direction:column}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+h1,h2,h3,.sora{font-family:Sora,"DM Sans",system-ui,sans-serif}
+a{color:inherit}
+
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:.7rem;
+  padding:.5rem 1rem;padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right));
+  padding-top:max(.5rem,env(safe-area-inset-top));
+  background:rgba(10,12,15,.55);border-bottom:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.bar .num{font-family:Sora,sans-serif;font-weight:800;font-size:.78rem;letter-spacing:.06em;background:var(--accent);color:#fff;border-radius:999px;padding:.15rem .6rem}
+.bar .name{flex:1;min-width:0;font-family:Sora,sans-serif;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .back{text-decoration:none;font-size:.88rem;color:var(--muted);min-height:44px;display:flex;align-items:center;padding:0 .3rem}
+.bar .back:hover{color:var(--text)}
+.iconbtn{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.iconbtn svg{width:22px;height:22px}
+.testbadge{font-size:.7rem;font-weight:700;border:1px solid var(--brk);color:var(--brk);border-radius:6px;padding:.05rem .35rem}
+
+main{flex:1;width:100%;max-width:72rem;margin:0 auto;padding:1rem;padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right));
+  display:grid;gap:1rem;grid-template-columns:1fr;align-items:start}
+@media (min-width:820px){main{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);padding-top:1.5rem}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1rem}
+.panel h2{margin:0 0 .6rem;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* Timer */
+.timer{display:flex;flex-direction:column;align-items:center;gap:.9rem;text-align:center}
+.planline{font-size:.88rem;color:var(--muted);min-height:1.3em}
+.ring{position:relative;width:min(74vw,18rem);aspect-ratio:1}
+.ring svg{width:100%;height:100%;display:block}
+.ring .track{fill:none;stroke:rgba(255,255,255,.09);stroke-width:14}
+.ring .prog{fill:none;stroke:var(--pc);stroke-width:14;stroke-linecap:round;transition:stroke .6s ease}
+.ring.over .prog{animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{opacity:.45}}
+.ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+.ring .time{font-family:Sora,sans-serif;font-weight:700;font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ring .sub{font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ring.over .sub{color:var(--text);font-weight:700}
+.posture{margin:0;font-family:Sora,sans-serif;font-size:clamp(1.8rem,8vw,2.3rem);font-weight:800;line-height:1.1;display:flex;align-items:center;gap:.55rem}
+.posture .dot{width:.7em;height:.7em;border-radius:50%;background:var(--pc);box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.nextline{font-size:.95rem;color:var(--muted);margin-top:-.4rem}
+.nextline b{color:var(--text);font-weight:600}
+
+.controls{display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:.6rem;width:100%;max-width:26rem}
+.ctl{min-height:56px;border-radius:16px;border:1px solid var(--line);background:var(--surface2);font-weight:700;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;gap:.4rem;padding:0 .6rem}
+.ctl svg{width:20px;height:20px;flex:none}
+.ctl.main{background:var(--pc);border-color:transparent;color:var(--pc-ink);font-family:Sora,sans-serif;font-size:1.1rem;transition:background-color .6s ease}
+.endbtn{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;min-height:44px;padding:0 .8rem;font-size:.9rem}
+
+.chips{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.chip{min-height:48px;min-width:5.5rem;border-radius:999px;border:1px solid var(--line);background:var(--surface);padding:0 1rem;font-weight:600;
+  display:flex;align-items:center;gap:.45rem;justify-content:center}
+.chip i{width:.7rem;height:.7rem;border-radius:50%;display:block}
+.chip[data-p="sit"] i{background:var(--sit)}.chip[data-p="stand"] i{background:var(--stand)}.chip[data-p="walk"] i{background:var(--walk)}
+.chip[aria-pressed="true"]{border-color:#fff;background:var(--surface2)}
+.chiphint{font-size:.78rem;color:var(--muted);margin-top:-.45rem}
+
+.pill{display:inline-flex;align-items:center;gap:.45rem;font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:.3rem .75rem;color:var(--muted)}
+.pill i{width:.55rem;height:.55rem;border-radius:50%;background:#6b7380;display:block}
+.pill.on i{background:#6ee7a0;box-shadow:0 0 0 3px rgba(110,231,160,.18)}
+.pill.warn i{background:var(--brk)}
+
+.speedbox{width:100%;max-width:26rem;border:1px solid var(--line);border-radius:16px;padding:.9rem;background:rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;gap:.6rem}
+.speedrow{display:flex;align-items:center;justify-content:center;gap:1rem;width:100%}
+.sbtn{width:60px;height:60px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);font-size:1.9rem;font-weight:700;line-height:1;display:grid;place-items:center}
+.speedval{font-family:Sora,sans-serif;font-weight:800;font-size:clamp(2.4rem,11vw,3rem);line-height:1;font-variant-numeric:tabular-nums;min-width:4.2ch}
+.speedval small{font-size:.38em;font-weight:600;color:var(--muted);margin-left:.25em}
+.speedmeta{font-size:.85rem;color:var(--muted)}
+.caution{font-size:.85rem;color:#ffd98a;display:flex;gap:.4rem;align-items:flex-start;text-align:left}
+
+.due{width:100%;max-width:26rem;border-radius:18px;padding:1rem;background:rgba(0,0,0,.28);border:2px solid var(--nextc,#fff);display:flex;flex-direction:column;gap:.7rem;align-items:center}
+.due .dt{font-family:Sora,sans-serif;font-weight:800;font-size:1.35rem}
+.due .ds{font-size:.9rem;color:var(--muted);margin-top:-.5rem}
+.switch{width:100%;min-height:72px;border-radius:16px;border:0;background:var(--nextc,#fff);color:var(--nextink,#111);font-family:Sora,sans-serif;font-weight:800;font-size:1.35rem}
+
+.pulse{position:fixed;inset:0;pointer-events:none;z-index:40;opacity:0;box-shadow:inset 0 0 0 0 var(--nextc,#fff)}
+.pulse.go{animation:pulse 1.1s ease-out 3}
+@keyframes pulse{0%{opacity:1;box-shadow:inset 0 0 0 0 var(--nextc,#fff)}40%{opacity:1;box-shadow:inset 0 0 0 18px var(--nextc,#fff)}100%{opacity:0;box-shadow:inset 0 0 0 40px transparent}}
+
+/* Stats */
+.stats{display:flex;flex-direction:column;gap:1rem}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+.tile{border-radius:14px;background:rgba(0,0,0,.18);border:1px solid var(--line);padding:.6rem .5rem;text-align:center;border-top:4px solid var(--tc,var(--line))}
+.tile .n{display:block;font-family:Sora,sans-serif;font-weight:700;font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.tile .l{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.goal{display:flex;flex-direction:column;gap:.35rem}
+.goal .gl{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted)}
+.goal .gl b{color:var(--text)}
+.gbar{height:.6rem;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.gbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--stand),var(--walk));width:0;transition:width .4s ease}
+
+.tl{position:relative;padding-bottom:1.3rem}
+.tltrack{position:relative;height:2.4rem;border-radius:10px;background:rgba(255,255,255,.06);overflow:hidden}
+.tlseg{position:absolute;top:0;bottom:0}
+.tlnow{position:absolute;top:-.2rem;bottom:1.1rem;width:2px;background:#fff;border-radius:2px}
+.tlticks{position:absolute;left:0;right:0;bottom:0;height:1.2rem}
+.tlticks span{position:absolute;top:0;transform:translateX(-50%);font-size:.7rem;color:var(--muted);white-space:nowrap}
+.tlticks span::before{content:"";position:absolute;left:50%;top:-.35rem;width:1px;height:.3rem;background:var(--line)}
+.empty{font-size:.88rem;color:var(--muted);text-align:center;padding:.4rem 0}
+.p-sit{background:var(--sit)}.p-stand{background:var(--stand)}.p-walk{background:var(--walk)}.p-break{background:var(--brk)}
+
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;align-items:end}
+.wcol{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.wbar{width:100%;max-width:2.6rem;height:8rem;border-radius:8px;background:rgba(255,255,255,.05);display:flex;flex-direction:column-reverse;overflow:hidden}
+.wbar i{display:block;width:100%}
+.wd{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.wv{font-size:.75rem;font-variant-numeric:tabular-nums;font-weight:600}
+.wcol.met .wv{color:#6ee7a0}
+.wcol.today .wd{color:var(--text);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:.4rem .9rem;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.legend i{width:.65rem;height:.65rem;border-radius:3px;display:block}
+
+.streak{display:flex;align-items:center;gap:.9rem;border-radius:14px;background:rgba(0,0,0,.18);border:1px solid var(--line);padding:.8rem 1rem}
+.streak .big{font-family:Sora,sans-serif;font-weight:800;font-size:2.4rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.streak .txt{font-size:.9rem;color:var(--muted)}
+.streak .txt b{color:var(--text);display:block;font-size:1rem}
+
+footer{text-align:center;padding:1.2rem 1rem calc(5.5rem + env(safe-area-inset-bottom));font-size:.85rem;color:var(--muted)}
+footer a{color:var(--muted);min-height:44px;display:inline-flex;align-items:center}
+
+/* Modals */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:0}
+@media (min-width:640px){.modal{align-items:center;padding:1rem}}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:20px 20px 0 0;width:100%;max-width:34rem;max-height:92vh;max-height:92dvh;overflow:auto;
+  padding:1rem 1rem calc(1.2rem + env(safe-area-inset-bottom));overscroll-behavior:contain}
+@media (min-width:640px){.sheet{border-radius:20px}}
+.sheethead{display:flex;align-items:center;gap:.6rem;position:sticky;top:-1rem;background:var(--sheet);margin:-1rem -1rem .5rem;padding:1rem 1rem .6rem;border-bottom:1px solid var(--line);z-index:2}
+.sheethead h3{flex:1;margin:0;font-size:1.15rem}
+.sec{padding:.9rem 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.7rem}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:0;font-family:Sora,sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hint{font-size:.82rem;color:var(--muted);margin:0}
+.field{display:flex;align-items:center;gap:.6rem;justify-content:space-between;min-height:44px}
+.field label,.field .lab{flex:1}
+.inp,.sel{min-height:44px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);padding:0 .65rem}
+.inp.num{width:5rem;text-align:center}
+.sel{padding-right:.4rem}
+.btn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);padding:0 1rem;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--danger);border-color:rgba(255,143,143,.4)}
+.btnrow{display:flex;flex-wrap:wrap;gap:.5rem}
+.rows{display:flex;flex-direction:column;gap:.5rem}
+.srow{display:grid;grid-template-columns:1.5rem minmax(5.5rem,1fr) 3.9rem 3.9rem 44px;gap:.4rem;align-items:center;background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:.4rem}
+.srow .ix{font-size:.8rem;color:var(--muted);text-align:center}
+.srow .sel,.srow .inp{width:100%;min-width:0}
+.srow .spd{display:flex;align-items:center;gap:.25rem;font-size:.75rem;color:var(--muted)}
+.srow .spd .inp{width:100%;text-align:center}
+.srow .x{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:none;font-size:1.3rem;line-height:1}
+.unit{font-size:.75rem;color:var(--muted)}
+.stepper{display:flex;align-items:center;gap:.5rem}
+.stepper button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);font-size:1.3rem;font-weight:700}
+.stepper output{min-width:4.5rem;text-align:center;font-family:Sora,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+.tog{display:flex;align-items:center;justify-content:space-between;gap:.8rem;min-height:44px;cursor:pointer}
+.tog input{position:absolute;opacity:0;width:1px;height:1px}
+.tog .sw{flex:none;width:52px;height:30px;border-radius:999px;background:rgba(255,255,255,.15);position:relative;transition:background .2s}
+.tog .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.tog input:checked + .sw{background:var(--accent)}
+.tog input:checked + .sw::after{transform:translateX(22px)}
+.tog input:focus-visible + .sw{outline:2px solid #fff;outline-offset:2px}
+.tog .tt{flex:1}
+.tog .tt small{display:block;color:var(--muted);font-size:.8rem}
+input[type=range]{width:100%;accent-color:var(--accent);min-height:44px}
+.speedbox .tog{width:100%;font-size:.92rem}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:.35rem}
+.days button{min-height:48px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.25);font-weight:700;font-size:.85rem;padding:0}
+.days button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.wcol.rest .wd{opacity:.5}
+.wcol.rest .wbar{opacity:.55}
+.confirm .sheet{max-width:26rem}
+.confirm p{margin:.2rem 0 1rem;color:var(--muted)}
+.confirm .btnrow{justify-content:flex-end}
+.note{font-size:.82rem;color:#ffd98a;margin:0}
+</style>
+</head>
+<body data-posture="idle">
+
+<header class="bar">
+  <span class="num">166</span>
+  <span class="name">Standing Desk Interval Coach</span>
+  <span class="testbadge" id="testBadge" hidden></span>
+  <a class="back" href="https://augustineiacopelli.github.io/appaday/">Portfolio</a>
+  <button class="iconbtn" id="gearBtn" type="button" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<main>
+  <section class="panel timer" id="timerPanel" aria-label="Timer">
+    <div class="planline" id="planLine"></div>
+    <div class="ring" id="ring">
+      <svg viewBox="0 0 240 240" aria-hidden="true">
+        <circle class="track" cx="120" cy="120" r="104"/>
+        <circle class="prog" id="ringProg" cx="120" cy="120" r="104" transform="rotate(-90 120 120)"/>
+      </svg>
+      <div class="center">
+        <div class="time" id="timeText" role="timer" aria-live="off">20:00</div>
+        <div class="sub" id="timeSub">Ready</div>
+      </div>
+    </div>
+    <h1 class="posture" aria-live="polite"><span class="dot"></span><span id="postureName">Sit</span></h1>
+    <div class="nextline" id="nextLine"></div>
+
+    <div class="due" id="dueBox" hidden>
+      <div class="dt" id="dueTitle">Time to stand up</div>
+      <div class="ds" id="dueSub"></div>
+      <button class="switch" id="switchBtn" type="button">Switch</button>
+    </div>
+
+    <div class="speedbox" id="speedBox" hidden>
+      <div class="speedrow">
+        <button class="sbtn" id="spdMinus" type="button" aria-label="Slower">&minus;</button>
+        <div class="speedval" id="speedVal" aria-live="polite">1.5<small>mph</small></div>
+        <button class="sbtn" id="spdPlus" type="button" aria-label="Faster">+</button>
+      </div>
+      <div class="speedmeta" id="speedMeta"></div>
+      <label class="tog" id="rememberRow"><span class="tt">Remember this speed<small>Later cycles start at this speed</small></span><input type="checkbox" id="rememberSpeed"><span class="sw"></span></label>
+      <div class="caution"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Step off before adjusting speed or desk height.</span></div>
+    </div>
+
+    <div class="controls">
+      <button class="ctl" id="backBtn" type="button" aria-label="Back to previous segment"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2.5v14H6zM20 5v14L9.5 12z"/></svg>Back</button>
+      <button class="ctl main" id="mainBtn" type="button">Start</button>
+      <button class="ctl" id="nextBtn" type="button" aria-label="Skip to next segment">Next<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 5H18v14h-2.5zM4 5l10.5 7L4 19z"/></svg></button>
+    </div>
+    <button class="endbtn" id="endBtn" type="button" hidden>End session</button>
+
+    <div class="chips" role="group" aria-label="Switch posture now">
+      <button class="chip" type="button" data-p="sit" aria-pressed="false"><i></i>Sit</button>
+      <button class="chip" type="button" data-p="stand" aria-pressed="false"><i></i>Stand</button>
+      <button class="chip" type="button" data-p="walk" aria-pressed="false"><i></i>Walk</button>
+    </div>
+    <div class="chiphint" id="chipHint">Pick a posture to start with, then press Start.</div>
+    <div class="pill" id="wakePill"><i></i><span id="wakeText">Screen lock normal</span></div>
+  </section>
+
+  <section class="panel stats" id="statsPanel" aria-label="Stats">
+    <div>
+      <h2>Today</h2>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="goal">
+      <div class="gl"><span>Stand + walk goal</span><span id="goalText"></span></div>
+      <div class="gbar"><i id="goalBar"></i></div>
+    </div>
+    <div>
+      <h2>Timeline</h2>
+      <div class="tl" id="timeline"></div>
+    </div>
+    <div>
+      <h2>Last 7 days</h2>
+      <div class="week" id="week"></div>
+      <div class="legend" style="margin-top:.6rem">
+        <span><i class="p-sit"></i>Sit</span><span><i class="p-stand"></i>Stand</span><span><i class="p-walk"></i>Walk</span><span><i class="p-break"></i>Break</span>
+      </div>
+    </div>
+    <div class="streak">
+      <div class="big" id="streakNum">0</div>
+      <div class="txt" id="streakTxt"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  AppADay 166 &middot; Everything stays on this device &middot; <a href="https://augustineiacopelli.github.io/appaday/">Back to the AppADay portfolio</a>
+</footer>
+
+<div class="pulse" id="pulse" aria-hidden="true"></div>
+
+<div class="modal" id="settingsModal" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <div class="sheethead"><h3 id="setTitle">Settings</h3><button class="iconbtn" id="setClose" type="button" aria-label="Close settings">&times;</button></div>
+
+    <div class="sec">
+      <h4>Preset</h4>
+      <div class="field"><select class="sel" id="presetSel" aria-label="Active preset" style="flex:1"></select></div>
+      <div class="field"><label for="presetName">Name</label><input class="inp" id="presetName" maxlength="40" style="flex:2;min-width:0"></div>
+      <p class="hint">Each row is a posture and its minutes. Walk rows also take a speed in mph.</p>
+      <div class="rows" id="segRows"></div>
+      <div class="btnrow">
+        <button class="btn" id="addSeg" type="button">Add segment</button>
+        <button class="btn" id="newPreset" type="button">New preset</button>
+        <button class="btn danger" id="delPreset" type="button">Delete preset</button>
+        <button class="btn" id="restorePresets" type="button">Restore defaults</button>
+      </div>
+      <div class="field"><label for="breakEvery">Break every N cycles <span class="unit">(0 for none)</span></label><input class="inp num" id="breakEvery" type="number" inputmode="numeric" min="0" max="12" step="1"></div>
+      <div class="field"><label for="breakMin">Break length <span class="unit">(min)</span></label><input class="inp num" id="breakMin" type="number" inputmode="numeric" min="1" max="60" step="1"></div>
+      <p class="hint" id="presetNote">Changing the preset during a session restarts the plan at its first segment.</p>
+    </div>
+
+    <div class="sec">
+      <h4>Walking pad</h4>
+      <div class="field"><span class="lab">Default speed<br><span class="unit">typing range 1.0 to 2.0 mph</span></span>
+        <div class="stepper"><button type="button" id="defMinus" aria-label="Lower default speed">&minus;</button><output id="defSpeed">1.5 mph</output><button type="button" id="defPlus" aria-label="Raise default speed">+</button></div></div>
+      <div class="btnrow"><button class="btn" id="applySpeed" type="button">Apply to all presets</button></div>
+    </div>
+
+    <div class="sec">
+      <h4>Nudges</h4>
+      <div class="field"><label for="volume">Volume</label><button class="btn" id="testChime" type="button">Test chime</button></div>
+      <input type="range" id="volume" min="0" max="100" step="5" aria-label="Volume">
+      <label class="tog"><span class="tt">Vibration<small>Phones that support it</small></span><input type="checkbox" id="vibration"><span class="sw"></span></label>
+      <label class="tog"><span class="tt">Repeat reminders<small>Every 2 minutes of overtime, up to 3 more times</small></span><input type="checkbox" id="reminderRepeat"><span class="sw"></span></label>
+    </div>
+
+    <div class="sec">
+      <h4>Goal and streak</h4>
+      <div class="field"><label for="dailyGoal">Daily stand + walk goal <span class="unit">(min)</span></label><input class="inp num" id="dailyGoal" type="number" inputmode="numeric" min="5" max="600" step="5"></div>
+      <div class="lab">Streak days<br><span class="unit">Days you plan to hit the goal. Other days still count when you meet the goal, but never break the streak.</span></div>
+      <div class="days" id="dayPick" role="group" aria-label="Streak days"></div>
+      <div class="btnrow"><button class="btn" type="button" data-days="weekdays">Weekdays</button><button class="btn" type="button" data-days="all">Every day</button><button class="btn" type="button" data-days="mwf">Mon Wed Fri</button><button class="btn" type="button" data-days="tth">Tue Thu</button></div>
+    </div>
+
+    <div class="sec">
+      <h4>Notifications</h4>
+      <label class="tog"><span class="tt">Notify when the tab is hidden<small>Works on desktop and Android only</small></span><input type="checkbox" id="notifications"><span class="sw"></span></label>
+      <p class="note" id="notifNote" hidden></p>
+    </div>
+
+    <div class="sec">
+      <h4>Data</h4>
+      <div class="btnrow">
+        <button class="btn" id="exportBtn" type="button">Export JSON</button>
+        <button class="btn" id="importBtn" type="button">Import JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button class="btn danger" id="clearBtn" type="button">Clear all data</button>
+      </div>
+      <p class="hint" id="dataNote">Your settings, presets, and history live only in this browser.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal confirm" id="confirmModal" hidden role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
+  <div class="sheet">
+    <h3 id="cfTitle" class="sora" style="margin:.2rem 0 .3rem">Are you sure?</h3>
+    <p id="cfBody"></p>
+    <div class="btnrow"><button class="btn" id="cfCancel" type="button">Cancel</button><button class="btn primary" id="cfOk" type="button">OK</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ---------- constants ---------- */
+var params = new URLSearchParams(location.search);
+var SCALE = Math.min(600, Math.max(1, parseFloat(params.get('scale')) || 1));
+var MIN_MS = 60000 / SCALE;
+var REPEAT_MS = 2 * MIN_MS;
+var STALE_MS = 20 * 60000;
+var KEEP_MS = 120 * 86400000;
+var SPEED_MIN = 0.5, SPEED_MAX = 4.0;
+var DOT = ' \u00b7 ';
+var K = { settings: 'sdic-settings', presets: 'sdic-presets', state: 'sdic-state', log: 'sdic-log' };
+var POST = {
+  sit:   { label: 'Sit',   verb: 'Time to sit down', vib: [300] },
+  stand: { label: 'Stand', verb: 'Time to stand up', vib: [100, 80, 100, 80, 300] },
+  walk:  { label: 'Walk',  verb: 'Time to walk',     vib: [80, 60, 80, 60, 80, 60, 80] },
+  'break': { label: 'Break', verb: 'Time for a break', vib: [500, 200, 500] }
+};
+var COLORS = { sit: '#3E5C76', stand: '#D14D72', walk: '#2E8B6A', 'break': '#C99A2E' };
+var INKS = { sit: '#fff', stand: '#fff', walk: '#fff', 'break': '#1c1505' };
+var ADHOC_DEFAULT = { sit: 20, stand: 15, walk: 10 };
+var DEFAULT_SETTINGS = {
+  defaultSpeed: 1.5, volume: 0.6, vibration: true, reminderRepeat: true, dailyGoal: 60,
+  activeDays: [false, true, true, true, true, true, false], notifications: false, activePresetId: 'cornell', rememberSpeed: false
+};
+
+/* ---------- storage ---------- */
+function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+/* ---------- helpers ---------- */
+function $(id) { return document.getElementById(id); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+function roundSpeed(v) { return clamp(Math.round(v * 10) / 10, SPEED_MIN, SPEED_MAX); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function clearKids(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function fmtClock(ms) {
+  var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return h ? h + ':' + pad(m) + ':' + pad(x) : m + ':' + pad(x);
+}
+function fmtMin(m) { m = Math.round(m); if (m < 60) return m + 'm'; return Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm'; }
+function dayKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function keyParts(k) { var p = k.split('-'); return [+p[0], +p[1] - 1, +p[2]]; }
+function dayStart(k) { var p = keyParts(k); return new Date(p[0], p[1], p[2]).getTime(); }
+function dayEnd(k) { var p = keyParts(k); return new Date(p[0], p[1], p[2] + 1).getTime(); }
+function shiftKey(k, n) { var p = keyParts(k); return dayKey(new Date(p[0], p[1], p[2] + n, 12).getTime()); }
+function isActiveDay(k) { return !!settings.activeDays[new Date(dayStart(k)).getDay()]; }
+var DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function daysLabel(a) {
+  var n = a.filter(Boolean).length, key = a.map(function (v) { return v ? 1 : 0; }).join('');
+  if (n === 7) return 'Every day';
+  if (key === '0111110') return 'Weekdays';
+  if (key === '1000001') return 'Weekends';
+  return DAY_SHORT.filter(function (d, i) { return a[i]; }).join(' ');
+}
+
+/* ---------- data ---------- */
+function builtinPresets(spd) {
+  return [
+    { id: 'cornell', name: 'Cornell 20/8/2', builtin: true, breakEvery: 0, breakMin: 10,
+      segments: [{ posture: 'sit', min: 20 }, { posture: 'stand', min: 8 }, { posture: 'walk', min: 2, speed: spd }] },
+    { id: 'simple', name: 'Simple 30/30', builtin: true, breakEvery: 0, breakMin: 10,
+      segments: [{ posture: 'sit', min: 30 }, { posture: 'stand', min: 30 }] },
+    { id: 'pad', name: 'Walking Pad', builtin: true, breakEvery: 3, breakMin: 10,
+      segments: [{ posture: 'sit', min: 20 }, { posture: 'walk', min: 10, speed: spd }, { posture: 'stand', min: 15 }] }
+  ];
+}
+function cleanSettings(s) {
+  var o = {}, k;
+  for (k in DEFAULT_SETTINGS) o[k] = (s && typeof s[k] === typeof DEFAULT_SETTINGS[k]) ? s[k] : DEFAULT_SETTINGS[k];
+  o.defaultSpeed = roundSpeed(o.defaultSpeed);
+  o.volume = clamp(o.volume, 0, 1);
+  o.dailyGoal = clamp(Math.round(o.dailyGoal), 5, 600);
+  if (s && !Array.isArray(s.activeDays) && typeof s.weekdaysOnly === 'boolean') o.activeDays = s.weekdaysOnly ? DEFAULT_SETTINGS.activeDays.slice() : [true, true, true, true, true, true, true];
+  if (!Array.isArray(o.activeDays) || o.activeDays.length !== 7) o.activeDays = DEFAULT_SETTINGS.activeDays.slice();
+  o.activeDays = o.activeDays.map(function (v) { return v === true; });
+  if (o.activeDays.indexOf(true) < 0) o.activeDays = [true, true, true, true, true, true, true];
+  return o;
+}
+function cleanPresets(arr, spd) {
+  if (!Array.isArray(arr)) return builtinPresets(spd);
+  var out = arr.filter(function (p) { return p && typeof p.id === 'string' && Array.isArray(p.segments); }).map(function (p) {
+    var segs = p.segments.filter(function (s) { return s && POST[s.posture] && s.posture !== 'break'; }).map(function (s) {
+      var o = { posture: s.posture, min: clamp(Math.round(+s.min || 1), 1, 240) };
+      if (s.posture === 'walk') o.speed = roundSpeed(+s.speed || spd);
+      return o;
+    });
+    if (!segs.length) segs = [{ posture: 'sit', min: 20 }];
+    return { id: p.id, name: String(p.name || 'Preset').slice(0, 40), builtin: !!p.builtin,
+      breakEvery: clamp(Math.round(+p.breakEvery || 0), 0, 12), breakMin: clamp(Math.round(+p.breakMin || 10), 1, 60), segments: segs };
+  });
+  return out.length ? out : builtinPresets(spd);
+}
+function cleanLog(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(function (e) { return e && typeof e.start === 'number' && POST[e.posture] && (e.end === null || typeof e.end === 'number'); })
+    .map(function (e) { return { id: String(e.id || uid()), start: e.start, end: e.end, posture: e.posture, speed: e.posture === 'walk' ? (+e.speed || 0) : 0 }; });
+}
+function freshState() {
+  return { status: 'idle', presetId: settings.activePresetId, segIndex: 0, cycle: 1, segStartAt: 0, pausedMs: 0, pausedAt: 0,
+    plannedMs: 0, posture: 'sit', speed: 0, nudgeCount: 0, lastSeen: 0, inBreak: false, adhoc: false, adhocPosture: null, openId: null };
+}
+
+var settings = cleanSettings(lsGet(K.settings, null));
+var presets = cleanPresets(lsGet(K.presets, null), settings.defaultSpeed);
+var log = cleanLog(lsGet(K.log, []));
+var state = (function () {
+  var s = lsGet(K.state, null), f = freshState(), k;
+  if (!s || typeof s !== 'object') return f;
+  for (k in f) if (s[k] !== undefined && typeof s[k] === typeof f[k]) f[k] = s[k];
+  if (s.adhocPosture) f.adhocPosture = s.adhocPosture;
+  if (typeof s.openId === 'string') f.openId = s.openId;
+  if (['idle', 'running', 'paused'].indexOf(f.status) < 0) f.status = 'idle';
+  return f;
+})();
+
+function saveSettings() { lsSet(K.settings, settings); }
+function savePresets() { lsSet(K.presets, presets); }
+function saveLog() { lsSet(K.log, log); }
+function saveState() { lsSet(K.state, state); }
+
+function pruneLog() {
+  var cut = Date.now() - KEEP_MS;
+  log = log.filter(function (e) { return e.end === null || e.end >= cut; });
+  /* any open entry not owned by the current state is closed at its own start (orphan) */
+  log.forEach(function (e) { if (e.end === null && e.id !== state.openId) e.end = e.start; });
+  log = log.filter(function (e) { return e.end === null || e.end > e.start; });
+  if (state.openId && !log.some(function (e) { return e.id === state.openId; })) state.openId = null;
+  saveLog();
+}
+
+function getPreset(id) {
+  for (var i = 0; i < presets.length; i++) if (presets[i].id === id) return presets[i];
+  return presets[0];
+}
+
+/* ---------- log ---------- */
+function openEntry(at) {
+  var e = { id: uid(), start: at, end: null, posture: state.posture, speed: state.posture === 'walk' ? state.speed : 0 };
+  log.push(e); state.openId = e.id; saveLog();
+}
+function closeEntry(at) {
+  if (!state.openId) return;
+  for (var i = log.length - 1; i >= 0; i--) {
+    if (log[i].id === state.openId) {
+      log[i].end = Math.max(log[i].start, at);
+      if (log[i].end - log[i].start < 1000) log.splice(i, 1);
+      break;
+    }
+  }
+  state.openId = null; saveLog();
+}
+
+/* ---------- plan ---------- */
+function curPos() { return { segIndex: state.segIndex, cycle: state.cycle, inBreak: state.inBreak, adhoc: state.adhoc, adhocPosture: state.adhocPosture }; }
+function advance(p, preset) {
+  var segs = preset.segments, n = segs.length, i = Math.min(p.segIndex, n - 1), c = p.cycle;
+  if (p.adhoc) {
+    for (var k = 0; k < n; k++) {
+      i++; if (i >= n) { i = 0; c++; }
+      if (segs[i].posture !== p.adhocPosture) return { segIndex: i, cycle: c, inBreak: false, adhoc: false };
+    }
+    i = Math.min(p.segIndex, n - 1) + 1; c = p.cycle;
+    if (i >= n) { i = 0; c++; }
+    return { segIndex: i, cycle: c, inBreak: false, adhoc: false };
+  }
+  if (p.inBreak) return { segIndex: 0, cycle: c + 1, inBreak: false, adhoc: false };
+  if (i + 1 < n) return { segIndex: i + 1, cycle: c, inBreak: false, adhoc: false };
+  if (preset.breakEvery > 0 && c % preset.breakEvery === 0) return { segIndex: i, cycle: c, inBreak: true, adhoc: false };
+  return { segIndex: 0, cycle: c + 1, inBreak: false, adhoc: false };
+}
+function retreat(p, preset) {
+  var n = preset.segments.length, i = Math.min(p.segIndex, n - 1);
+  if (p.adhoc) return { segIndex: i, cycle: p.cycle, inBreak: false, adhoc: false };
+  if (p.inBreak) return { segIndex: n - 1, cycle: p.cycle, inBreak: false, adhoc: false };
+  if (i > 0) return { segIndex: i - 1, cycle: p.cycle, inBreak: false, adhoc: false };
+  if (p.cycle > 1) return { segIndex: n - 1, cycle: p.cycle - 1, inBreak: false, adhoc: false };
+  return { segIndex: 0, cycle: 1, inBreak: false, adhoc: false };
+}
+function adhocMinutes(posture, preset) {
+  for (var i = 0; i < preset.segments.length; i++) if (preset.segments[i].posture === posture) return preset.segments[i].min;
+  return ADHOC_DEFAULT[posture] || 15;
+}
+function segInfo(p, preset) {
+  if (p.inBreak) return { posture: 'break', min: preset.breakMin, speed: 0 };
+  if (p.adhoc) {
+    var m = adhocMinutes(p.adhocPosture, preset);
+    return { posture: p.adhocPosture, min: m, speed: p.adhocPosture === 'walk' ? walkSpeedFor(p.adhocPosture, preset) : 0 };
+  }
+  var s = preset.segments[Math.min(p.segIndex, preset.segments.length - 1)];
+  return { posture: s.posture, min: s.min, speed: s.posture === 'walk' ? roundSpeed(s.speed || settings.defaultSpeed) : 0 };
+}
+function walkSpeedFor(posture, preset) {
+  for (var i = 0; i < preset.segments.length; i++) if (preset.segments[i].posture === 'walk') return roundSpeed(preset.segments[i].speed || settings.defaultSpeed);
+  return settings.defaultSpeed;
+}
+function applyPos(p) {
+  state.segIndex = p.segIndex; state.cycle = p.cycle; state.inBreak = p.inBreak; state.adhoc = p.adhoc;
+  state.adhocPosture = p.adhoc ? p.adhocPosture : null;
+}
+
+/* ---------- engine ---------- */
+function elapsed(now) {
+  now = now || Date.now();
+  if (state.status === 'running') return now - state.segStartAt - state.pausedMs;
+  if (state.status === 'paused') return state.pausedAt - state.segStartAt - state.pausedMs;
+  return 0;
+}
+function startSegment(now, speedOverride) {
+  var preset = getPreset(state.presetId), info = segInfo(curPos(), preset);
+  state.posture = info.posture; state.speed = info.speed;
+  if (speedOverride && info.posture === 'walk') state.speed = roundSpeed(speedOverride);
+  pendingPosture = null; preSpeed = null;
+  state.plannedMs = info.min * MIN_MS;
+  state.segStartAt = now; state.pausedMs = 0; state.pausedAt = 0; state.nudgeCount = 0;
+  state.status = 'running'; state.lastSeen = now;
+  liveSpeed = state.speed;
+  openEntry(now);
+  saveState();
+  wakeOn();
+  scheduleDue();
+  hidePulse();
+  renderAll();
+}
+function startPlan() {
+  unlockAudio();
+  var now = Date.now();
+  state.presetId = getPreset(settings.activePresetId).id;
+  applyPos({ segIndex: 0, cycle: 1, inBreak: false, adhoc: false });
+  startSegment(now);
+}
+function goNext() {
+  if (state.status === 'idle') return;
+  unlockAudio(); flushSpeed();
+  var now = Date.now();
+  closeEntry(now);
+  applyPos(advance(curPos(), getPreset(state.presetId)));
+  startSegment(now);
+}
+function goBack() {
+  if (state.status === 'idle') return;
+  unlockAudio(); flushSpeed();
+  var now = Date.now();
+  closeEntry(now);
+  applyPos(retreat(curPos(), getPreset(state.presetId)));
+  startSegment(now);
+}
+function goAdhoc(posture, speedOverride) {
+  unlockAudio();
+  var now = Date.now();
+  if (state.status === 'idle') {
+    state.presetId = getPreset(settings.activePresetId).id;
+    applyPos({ segIndex: 0, cycle: 1, inBreak: false, adhoc: false });
+  } else { flushSpeed(); closeEntry(now); }
+  var preset = getPreset(state.presetId);
+  if (state.inBreak) { state.segIndex = preset.segments.length - 1; state.inBreak = false; }
+  state.adhoc = true; state.adhocPosture = posture;
+  startSegment(now, speedOverride);
+}
+function pause() {
+  if (state.status !== 'running') return;
+  flushSpeed();
+  var now = Date.now();
+  closeEntry(now);
+  state.status = 'paused'; state.pausedAt = now; state.lastSeen = now;
+  saveState(); clearDue(); wakeOff(); renderAll();
+}
+function resume() {
+  if (state.status !== 'paused') return;
+  unlockAudio();
+  var now = Date.now();
+  state.pausedMs += now - state.pausedAt; state.pausedAt = 0;
+  state.status = 'running'; state.lastSeen = now;
+  openEntry(now); saveState(); wakeOn(); scheduleDue(); renderAll();
+}
+function endSession() {
+  flushSpeed();
+  var now = Date.now();
+  closeEntry(now);
+  var keep = state.presetId;
+  state = freshState(); state.presetId = keep;
+  pendingPosture = null; preSpeed = null;
+  saveState(); clearDue(); wakeOff(); hidePulse(); renderAll();
+}
+function switchPresetLive(id) {
+  state.presetId = id;
+  if (state.status === 'idle') { saveState(); renderAll(); return; }
+  flushSpeed();
+  var now = Date.now();
+  closeEntry(now);
+  applyPos({ segIndex: 0, cycle: 1, inBreak: false, adhoc: false });
+  startSegment(now);
+}
+
+/* ---------- nudges ---------- */
+var dueTimer = null;
+function clearDue() { if (dueTimer) { clearTimeout(dueTimer); dueTimer = null; } }
+function maxFires() { return settings.reminderRepeat ? 4 : 1; }
+function scheduleDue() {
+  clearDue();
+  if (state.status !== 'running') return;
+  if (state.nudgeCount >= maxFires()) return;
+  var at = state.plannedMs + state.nudgeCount * REPEAT_MS;
+  dueTimer = setTimeout(checkNudge, Math.max(0, at - elapsed()) + 30);
+}
+function checkNudge() {
+  if (state.status !== 'running') return;
+  var el = elapsed();
+  if (el >= state.plannedMs) {
+    var expected = Math.min(maxFires(), 1 + Math.floor((el - state.plannedMs) / REPEAT_MS));
+    if (expected > state.nudgeCount) {
+      state.nudgeCount = expected; saveState();
+      fireNudge();
+    }
+  }
+  scheduleDue();
+}
+function nextInfo() {
+  var preset = getPreset(state.presetId);
+  return segInfo(advance(curPos(), preset), preset);
+}
+function fireNudge() {
+  var nx = nextInfo();
+  playChime(nx.posture);
+  if (settings.vibration && navigator.vibrate) { try { navigator.vibrate(POST[nx.posture].vib); } catch (e) {} }
+  showPulse();
+  notify(POST[nx.posture].verb, POST[state.posture].label + ' time is up. Next: ' + POST[nx.posture].label + ', ' + nx.min + ' min.');
+  renderTimer();
+}
+function showPulse() {
+  var p = $('pulse');
+  p.classList.remove('go'); void p.offsetWidth; p.classList.add('go');
+}
+function hidePulse() { $('pulse').classList.remove('go'); }
+function notify(title, body) {
+  if (!settings.notifications || !document.hidden) return;
+  try {
+    if (window.Notification && Notification.permission === 'granted') new Notification(title, { body: body, tag: 'sdic-nudge' });
+  } catch (e) {}
+}
+
+/* ---------- audio ---------- */
+var actx = null;
+function unlockAudio() {
+  try {
+    if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+    if (actx && actx.state === 'suspended') actx.resume();
+  } catch (e) {}
+}
+function tone(f1, f2, type, t, dur, peak) {
+  var o = actx.createOscillator(), g = actx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f1, t);
+  if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(f2, t + dur * 0.8);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function playChime(p) {
+  var v = settings.volume;
+  if (!actx || v <= 0) return;
+  try {
+    if (actx.state === 'suspended') actx.resume();
+    var t = actx.currentTime + 0.03, pk = 0.5 * v;
+    if (p === 'sit') tone(660, 440, 'sine', t, 0.75, pk);
+    else if (p === 'stand') tone(440, 660, 'sine', t, 0.75, pk);
+    else if (p === 'walk') { tone(523.25, 523.25, 'triangle', t, 0.2, pk); tone(659.25, 659.25, 'triangle', t + 0.2, 0.2, pk); tone(783.99, 783.99, 'triangle', t + 0.4, 0.32, pk); }
+    else { tone(523.25, 523.25, 'sine', t, 1.8, pk); tone(1046.5, 1046.5, 'sine', t, 1.3, pk * 0.45); }
+  } catch (e) {}
+}
+
+/* ---------- wake lock ---------- */
+var wl = null, wlState = 'off';
+function wakeOn() {
+  if (!('wakeLock' in navigator)) { wlState = 'unsupported'; renderWake(); return; }
+  if (wl || document.hidden) { renderWake(); return; }
+  try {
+    navigator.wakeLock.request('screen').then(function (lock) {
+      if (state.status !== 'running') { try { lock.release(); } catch (e) {} return; }
+      wl = lock; wlState = 'on';
+      lock.addEventListener('release', function () { if (wl === lock) { wl = null; if (wlState === 'on') wlState = 'lost'; renderWake(); } });
+      renderWake();
+    }).catch(function () { wlState = 'denied'; renderWake(); });
+  } catch (e) { wlState = 'denied'; renderWake(); }
+}
+function wakeOff() {
+  if (wlState !== 'unsupported') wlState = 'off';
+  if (wl) { var w = wl; wl = null; try { w.release(); } catch (e) {} }
+  renderWake();
+}
+function renderWake() {
+  var pill = $('wakePill'), txt = 'Screen lock normal', cls = '';
+  if (wlState === 'on') { txt = 'Screen stays awake'; cls = 'on'; }
+  else if (wlState === 'lost') { txt = 'Screen may sleep'; cls = 'warn'; }
+  else if (wlState === 'unsupported') { txt = 'Keep awake not supported here'; cls = 'warn'; }
+  else if (wlState === 'denied') { txt = 'Keep awake was blocked'; cls = 'warn'; }
+  pill.className = 'pill' + (cls ? ' ' + cls : '');
+  $('wakeText').textContent = txt;
+}
+
+/* ---------- live walking speed ---------- */
+var liveSpeed = state.speed, speedTimer = null;
+var pendingPosture = null, preSpeed = null;
+function nudgeSpeed(d) {
+  liveSpeed = roundSpeed((liveSpeed || settings.defaultSpeed) + d);
+  if (state.status === 'idle') { preSpeed = liveSpeed; renderSpeed(); return; }
+  renderSpeed();
+  if (speedTimer) clearTimeout(speedTimer);
+  speedTimer = setTimeout(commitSpeed, 1500);
+}
+function commitSpeed() {
+  speedTimer = null;
+  if (state.posture !== 'walk' || state.status === 'idle') return;
+  if (Math.abs(liveSpeed - state.speed) < 0.01) return;
+  var now = Date.now();
+  if (state.status === 'running') { closeEntry(now); state.speed = liveSpeed; openEntry(now); }
+  else state.speed = liveSpeed;
+  if (settings.rememberSpeed && !state.adhoc && !state.inBreak) {
+    var preset = getPreset(state.presetId), seg = preset.segments[state.segIndex];
+    if (seg && seg.posture === 'walk') { seg.speed = state.speed; savePresets(); if (!$('settingsModal').hidden) renderEditor(); }
+  }
+  saveState(); renderStats(); renderSpeed();
+}
+function flushSpeed() { if (speedTimer) { clearTimeout(speedTimer); commitSpeed(); } }
+function renderSpeed() {
+  var idleWalk = state.status === 'idle' && pendingPosture === 'walk';
+  var show = idleWalk || (state.status !== 'idle' && state.posture === 'walk');
+  $('speedBox').hidden = !show;
+  if (!show) return;
+  $('speedVal').innerHTML = liveSpeed.toFixed(1) + '<small>mph</small>';
+  if (idleWalk) $('speedMeta').textContent = 'Starting speed. Press Start when you are on the pad.';
+  else $('speedMeta').textContent = (speedTimer ? 'Saving speed in a moment' : 'This walk: ' + sessionWalkMiles().toFixed(2) + ' mi');
+  $('rememberSpeed').checked = settings.rememberSpeed;
+  $('rememberRow').hidden = idleWalk;
+}
+function sessionWalkMiles() {
+  var now = Date.now(), mi = 0;
+  for (var j = log.length - 1; j >= 0; j--) {
+    var x = log[j];
+    if (x.start < state.segStartAt) break;
+    if (x.posture === 'walk') mi += ((x.end === null ? now : x.end) - x.start) / 3600000 * x.speed;
+  }
+  return mi;
+}
+
+/* ---------- stats ---------- */
+function entriesForDay(key, now) {
+  now = now || Date.now();
+  var ds = dayStart(key), de = dayEnd(key), out = [];
+  for (var i = 0; i < log.length; i++) {
+    var e = log[i], s = Math.max(e.start, ds), en = Math.min(e.end === null ? now : e.end, de);
+    if (en > s) out.push({ posture: e.posture, speed: e.speed, start: s, end: en });
+  }
+  out.sort(function (a, b) { return a.start - b.start; });
+  return out;
+}
+function totalsFor(key, now) {
+  var t = { sit: 0, stand: 0, walk: 0, 'break': 0, miles: 0, switches: 0 }, list = entriesForDay(key, now), prev = null;
+  for (var i = 0; i < list.length; i++) {
+    var e = list[i], h = (e.end - e.start) / 3600000;
+    t[e.posture] += h * 60;
+    if (e.posture === 'walk') t.miles += h * e.speed;
+    if (prev && prev !== e.posture) t.switches++;
+    prev = e.posture;
+  }
+  t.active = t.stand + t.walk;
+  t.list = list;
+  return t;
+}
+function streakInfo(now) {
+  var today = dayKey(now), tt = totalsFor(today, now), goal = settings.dailyGoal;
+  var count = tt.active >= goal ? 1 : 0, k = today;
+  for (var n = 0; n < 130; n++) {
+    k = shiftKey(k, -1);
+    var met = totalsFor(k, now).active >= goal;
+    if (met) { count++; continue; }
+    if (!isActiveDay(k)) continue;
+    break;
+  }
+  return { count: count, todayMet: tt.active >= goal, todayActive: isActiveDay(today) };
+}
+var lastStatsKey = '';
+function renderStats() {
+  var now = Date.now(), today = dayKey(now), t = totalsFor(today, now);
+  lastStatsKey = today;
+  var tiles = [
+    ['Sit', fmtMin(t.sit), COLORS.sit], ['Stand', fmtMin(t.stand), COLORS.stand], ['Walk', fmtMin(t.walk), COLORS.walk],
+    ['Break', fmtMin(t['break']), COLORS['break']], ['Miles', t.miles.toFixed(2), ''], ['Switches', String(t.switches), '']
+  ];
+  $('tiles').innerHTML = tiles.map(function (x) {
+    return '<div class="tile"' + (x[2] ? ' style="--tc:' + x[2] + '"' : '') + '><span class="n">' + x[1] + '</span><span class="l">' + x[0] + '</span></div>';
+  }).join('');
+  var goal = settings.dailyGoal;
+  $('goalText').innerHTML = '<b>' + Math.round(t.active) + '</b> of ' + goal + ' min';
+  $('goalBar').style.width = Math.min(100, t.active / goal * 100) + '%';
+  renderTimeline(t.list, today, now);
+  renderWeek(today, now);
+  var st = streakInfo(now);
+  $('streakNum').textContent = st.count;
+  $('streakTxt').innerHTML = '<b>day streak' + DOT + esc(daysLabel(settings.activeDays)) + '</b>' +
+    (st.todayMet ? 'Today counts. Goal met.'
+      : st.todayActive ? 'Today is pending until midnight. ' + Math.max(0, Math.ceil(goal - t.active)) + ' min to go.'
+      : 'Today is a rest day. Hit ' + goal + ' min and it still counts.');
+}
+function hourLabel(h) { var x = h % 24; return (x % 12 || 12) + (x < 12 ? 'a' : 'p'); }
+function renderTimeline(list, today, now) {
+  var el = $('timeline'), ds = dayStart(today), H = 3600000;
+  var nowH = (now - ds) / H;
+  var startH = 8, endH = 18;
+  if (list.length) { startH = Math.min(startH, Math.floor((list[0].start - ds) / H)); endH = Math.max(endH, Math.ceil((list[list.length - 1].end - ds) / H)); }
+  endH = Math.min(24, Math.max(endH, Math.ceil(nowH)));
+  startH = Math.max(0, Math.min(startH, Math.floor(nowH)));
+  if (endH - startH < 4) endH = Math.min(24, startH + 4);
+  var span = endH - startH, segs = '', ticks = '', step = span > 12 ? 2 : 1;
+  list.forEach(function (e) {
+    var a = ((e.start - ds) / H - startH) / span * 100, w = (e.end - e.start) / H / span * 100;
+    segs += '<div class="tlseg p-' + e.posture + '" style="left:' + a.toFixed(3) + '%;width:' + Math.max(0.35, w).toFixed(3) + '%"></div>';
+  });
+  for (var h = startH; h <= endH; h += step) ticks += '<span style="left:' + ((h - startH) / span * 100).toFixed(2) + '%">' + hourLabel(h) + '</span>';
+  var nowMark = (nowH >= startH && nowH <= endH) ? '<div class="tlnow" style="left:' + ((nowH - startH) / span * 100).toFixed(2) + '%" title="Now"></div>' : '';
+  el.innerHTML = '<div class="tltrack">' + segs + '</div>' + nowMark + '<div class="tlticks">' + ticks + '</div>' +
+    (list.length ? '' : '<div class="empty">No time logged yet today. Press Start.</div>');
+}
+function renderWeek(today, now) {
+  var days = [], max = 60, i;
+  for (i = 6; i >= 0; i--) { var k = shiftKey(today, -i), t = totalsFor(k, now); t.key = k; days.push(t); max = Math.max(max, t.sit + t.stand + t.walk + t['break']); }
+  var names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  $('week').innerHTML = days.map(function (t) {
+    var bars = ['sit', 'stand', 'walk', 'break'].map(function (p) {
+      return t[p] > 0 ? '<i class="p-' + p + '" style="height:' + (t[p] / max * 100).toFixed(2) + '%"></i>' : '';
+    }).join('');
+    var met = t.active >= settings.dailyGoal, isT = t.key === today;
+    var lab = names[new Date(dayStart(t.key)).getDay()];
+    return '<div class="wcol' + (met ? ' met' : '') + (isT ? ' today' : '') + (isActiveDay(t.key) ? '' : ' rest') + '" title="' + t.key + ': stand and walk ' + Math.round(t.active) + ' min">' +
+      '<div class="wbar">' + bars + '</div><div class="wv">' + Math.round(t.active) + '</div><div class="wd">' + (isT ? 'Today' : lab) + '</div></div>';
+  }).join('');
+}
+
+/* ---------- timer render ---------- */
+var CIRC = 2 * Math.PI * 104;
+$('ringProg').setAttribute('stroke-dasharray', CIRC.toFixed(2));
+function planSummary(preset) {
+  var s = preset.segments.map(function (x) { return POST[x.posture].label + ' ' + x.min; }).join(DOT);
+  if (preset.breakEvery > 0) s += DOT + 'Break ' + preset.breakMin + ' every ' + preset.breakEvery;
+  return s;
+}
+function renderTimer() {
+  var preset = getPreset(state.status === 'idle' ? settings.activePresetId : state.presetId);
+  var idle = state.status === 'idle';
+  var pend = idle && pendingPosture;
+  var posture = pend ? pendingPosture : idle ? preset.segments[0].posture : state.posture;
+  document.body.setAttribute('data-posture', idle && !pend ? 'idle' : posture);
+  var el = elapsed(), planned = pend ? adhocMinutes(pendingPosture, preset) * MIN_MS : idle ? preset.segments[0].min * MIN_MS : state.plannedMs;
+  var over = !idle && el >= planned;
+  var frac = idle ? 0 : Math.min(1, el / planned);
+  $('ringProg').setAttribute('stroke-dashoffset', (CIRC * (1 - frac)).toFixed(2));
+  $('ring').classList.toggle('over', over);
+  $('timeText').textContent = idle ? fmtClock(planned) : over ? '+' + fmtClock(el - planned) : fmtClock(planned - el);
+  $('timeSub').textContent = idle ? 'Ready' : state.status === 'paused' ? 'Paused' : over ? 'Overtime' : 'Remaining';
+  $('postureName').textContent = pend ? POST[posture].label : idle ? preset.name : POST[posture].label;
+
+  if (idle) {
+    $('planLine').textContent = planSummary(preset);
+    $('nextLine').innerHTML = pend ? 'Press Start to begin <b>' + POST[posture].label + '</b> for ' + Math.round(planned / MIN_MS) + ' min'
+      : 'Starts with <b>' + POST[posture].label + '</b> for ' + preset.segments[0].min + ' min';
+  } else {
+    var nx = nextInfo();
+    var cyc = preset.name + DOT + 'Cycle ' + state.cycle + (state.adhoc ? DOT + 'Off plan' : '');
+    if (preset.breakEvery > 0 && !state.inBreak) cyc += DOT + 'Break after ' + (Math.ceil(state.cycle / preset.breakEvery) * preset.breakEvery);
+    $('planLine').textContent = cyc;
+    $('nextLine').innerHTML = 'Next: <b>' + POST[nx.posture].label + '</b>, ' + nx.min + ' min' + (nx.posture === 'walk' ? ' at ' + nx.speed.toFixed(1) + ' mph' : '');
+    var root = document.documentElement.style;
+    root.setProperty('--nextc', COLORS[nx.posture]); root.setProperty('--nextink', INKS[nx.posture]);
+    if (over && state.status === 'running') {
+      $('dueTitle').textContent = POST[nx.posture].verb;
+      $('dueSub').textContent = POST[state.posture].label + ' ran ' + fmtClock(el - planned) + ' over';
+      $('switchBtn').textContent = 'Switch to ' + POST[nx.posture].label;
+    }
+  }
+  $('dueBox').hidden = !(over && state.status === 'running');
+  var mb = $('mainBtn');
+  mb.textContent = idle ? (pend ? 'Start ' + POST[posture].label : 'Start') : state.status === 'running' ? 'Pause' : 'Resume';
+  $('backBtn').disabled = idle; $('nextBtn').disabled = idle;
+  $('endBtn').hidden = idle;
+  var chips = document.querySelectorAll('.chip');
+  for (var i = 0; i < chips.length; i++) chips[i].setAttribute('aria-pressed', String((!idle || pend) && chips[i].getAttribute('data-p') === posture));
+  if (posture === 'walk' && (!idle || pend)) renderSpeed(); else $('speedBox').hidden = true;
+  $('chipHint').textContent = idle ? 'Pick a posture to start with, then press Start.' : 'Tap a posture to switch now. The plan picks up after.';
+  document.title = idle ? 'Standing Desk Interval Coach | AppADay 166' : (over ? '+' + fmtClock(el - planned) : fmtClock(planned - el)) + ' ' + POST[posture].label + ' | AppADay 166';
+}
+function renderAll() { renderTimer(); renderStats(); renderWake(); }
+
+/* ---------- confirm modal ---------- */
+var cfResolve = null, lastFocus = null;
+function ask(opts) {
+  return new Promise(function (resolve) {
+    if (cfResolve) cfResolve(false);
+    cfResolve = resolve;
+    $('cfTitle').textContent = opts.title || 'Are you sure?';
+    $('cfBody').textContent = opts.body || '';
+    $('cfOk').textContent = opts.ok || 'OK';
+    $('cfCancel').textContent = opts.cancel || 'Cancel';
+    $('cfOk').className = 'btn ' + (opts.danger ? 'danger' : 'primary');
+    lastFocus = document.activeElement;
+    $('confirmModal').hidden = false;
+    $('cfOk').focus();
+  });
+}
+function closeConfirm(v) {
+  $('confirmModal').hidden = true;
+  var r = cfResolve; cfResolve = null;
+  if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+  if (r) r(v);
+}
+$('cfOk').addEventListener('click', function () { closeConfirm(true); });
+$('cfCancel').addEventListener('click', function () { closeConfirm(false); });
+$('confirmModal').addEventListener('click', function (e) { if (e.target === this) closeConfirm(false); });
+
+/* ---------- settings modal ---------- */
+function openSettings() { renderSettings(); $('settingsModal').hidden = false; $('setClose').focus(); }
+function closeSettings() { $('settingsModal').hidden = true; $('gearBtn').focus(); }
+$('gearBtn').addEventListener('click', openSettings);
+$('setClose').addEventListener('click', closeSettings);
+$('settingsModal').addEventListener('click', function (e) { if (e.target === this) closeSettings(); });
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  if (!$('confirmModal').hidden) closeConfirm(false);
+  else if (!$('settingsModal').hidden) closeSettings();
+});
+
+function renderSettings() {
+  renderPresetPicker(); renderEditor();
+  $('defSpeed').textContent = settings.defaultSpeed.toFixed(1) + ' mph';
+  $('volume').value = Math.round(settings.volume * 100);
+  $('vibration').checked = settings.vibration;
+  $('reminderRepeat').checked = settings.reminderRepeat;
+  $('dailyGoal').value = settings.dailyGoal;
+  renderDays();
+  $('notifications').checked = settings.notifications;
+}
+function renderPresetPicker() {
+  $('presetSel').innerHTML = presets.map(function (p) {
+    return '<option value="' + esc(p.id) + '"' + (p.id === settings.activePresetId ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+  }).join('');
+}
+function editing() { return getPreset(settings.activePresetId); }
+function renderEditor() {
+  var p = editing(), rows = $('segRows');
+  $('presetName').value = p.name;
+  $('breakEvery').value = p.breakEvery;
+  $('breakMin').value = p.breakMin;
+  $('delPreset').hidden = p.builtin;
+  clearKids(rows);
+  p.segments.forEach(function (seg) { rows.appendChild(makeRow(p, seg)); });
+  renumberRows();
+}
+function renumberRows() {
+  var rows = $('segRows').children, one = rows.length <= 1;
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].querySelector('.ix').textContent = (i + 1) + '.';
+    rows[i].querySelector('.x').disabled = one;
+  }
+}
+function makeRow(preset, seg) {
+  var row = document.createElement('div');
+  row.className = 'srow';
+  row.innerHTML = '<span class="ix"></span>' +
+    '<select class="sel" aria-label="Posture"><option value="sit">Sit</option><option value="stand">Stand</option><option value="walk">Walk</option></select>' +
+    '<input class="inp" type="number" inputmode="numeric" min="1" max="240" step="1" aria-label="Minutes">' +
+    '<span class="spd"><input class="inp" type="number" inputmode="decimal" min="0.5" max="4" step="0.1" aria-label="Walk speed in mph" title="Walk speed in mph"></span>' +
+    '<button class="x" type="button" aria-label="Remove segment">&times;</button>';
+  var sel = row.querySelector('select'), min = row.querySelectorAll('input')[0], spd = row.querySelectorAll('input')[1], spdWrap = row.querySelector('.spd');
+  sel.value = seg.posture; min.value = seg.min;
+  function syncSpeed() {
+    spdWrap.style.visibility = seg.posture === 'walk' ? 'visible' : 'hidden';
+    if (seg.posture === 'walk') spd.value = roundSpeed(seg.speed || settings.defaultSpeed).toFixed(1);
+  }
+  syncSpeed();
+  sel.addEventListener('change', function () {
+    seg.posture = sel.value;
+    if (seg.posture === 'walk') seg.speed = settings.defaultSpeed; else delete seg.speed;
+    syncSpeed(); savePresets(); renderTimer();
+  });
+  min.addEventListener('change', function () { seg.min = clamp(Math.round(+min.value || 1), 1, 240); min.value = seg.min; savePresets(); renderTimer(); });
+  spd.addEventListener('change', function () { seg.speed = roundSpeed(+spd.value || settings.defaultSpeed); spd.value = seg.speed.toFixed(1); savePresets(); renderTimer(); });
+  row.querySelector('.x').addEventListener('click', function () {
+    if (preset.segments.length <= 1) return;
+    var i = preset.segments.indexOf(seg);
+    if (i >= 0) preset.segments.splice(i, 1);
+    $('segRows').removeChild(row);
+    if (state.presetId === preset.id && state.segIndex >= preset.segments.length) state.segIndex = preset.segments.length - 1;
+    renumberRows(); savePresets(); saveState(); renderTimer();
+  });
+  return row;
+}
+$('presetSel').addEventListener('change', function () {
+  settings.activePresetId = this.value; saveSettings();
+  renderEditor();
+  switchPresetLive(this.value);
+});
+$('presetName').addEventListener('input', function () {
+  var p = editing(); p.name = this.value.slice(0, 40) || 'Preset'; savePresets();
+  var opt = $('presetSel').options[$('presetSel').selectedIndex]; if (opt) opt.textContent = p.name;
+  renderTimer();
+});
+$('breakEvery').addEventListener('change', function () { var p = editing(); p.breakEvery = clamp(Math.round(+this.value || 0), 0, 12); this.value = p.breakEvery; savePresets(); renderTimer(); });
+$('breakMin').addEventListener('change', function () { var p = editing(); p.breakMin = clamp(Math.round(+this.value || 10), 1, 60); this.value = p.breakMin; savePresets(); renderTimer(); });
+$('addSeg').addEventListener('click', function () {
+  var p = editing(), seg = { posture: 'stand', min: 10 };
+  p.segments.push(seg); $('segRows').appendChild(makeRow(p, seg)); renumberRows(); savePresets(); renderTimer();
+});
+$('newPreset').addEventListener('click', function () {
+  var base = editing();
+  var np = { id: 'c' + uid(), name: 'My preset', builtin: false, breakEvery: base.breakEvery, breakMin: base.breakMin,
+    segments: base.segments.map(function (s) { var o = { posture: s.posture, min: s.min }; if (s.posture === 'walk') o.speed = s.speed || settings.defaultSpeed; return o; }) };
+  presets.push(np); savePresets();
+  settings.activePresetId = np.id; saveSettings();
+  renderPresetPicker(); renderEditor();
+  if (state.status === 'idle') { state.presetId = np.id; saveState(); }
+  renderTimer();
+  $('presetName').focus(); $('presetName').select();
+});
+$('delPreset').addEventListener('click', function () {
+  var p = editing();
+  if (p.builtin) return;
+  ask({ title: 'Delete ' + p.name + '?', body: 'This preset will be removed. Your logged history stays.', ok: 'Delete', danger: true }).then(function (ok) {
+    if (!ok) return;
+    presets.splice(presets.indexOf(p), 1); savePresets();
+    settings.activePresetId = presets[0].id; saveSettings();
+    renderPresetPicker(); renderEditor();
+    if (state.presetId === p.id) switchPresetLive(presets[0].id); else renderTimer();
+  });
+});
+$('restorePresets').addEventListener('click', function () {
+  ask({ title: 'Restore default presets?', body: 'Cornell 20/8/2, Simple 30/30, and Walking Pad go back to their original settings. Custom presets are kept.', ok: 'Restore' }).then(function (ok) {
+    if (!ok) return;
+    var fresh = builtinPresets(settings.defaultSpeed), customs = presets.filter(function (p) { return !p.builtin; });
+    presets = fresh.concat(customs); savePresets();
+    if (!presets.some(function (p) { return p.id === settings.activePresetId; })) { settings.activePresetId = 'cornell'; saveSettings(); }
+    var ps = getPreset(state.presetId);
+    if (state.segIndex >= ps.segments.length) state.segIndex = ps.segments.length - 1;
+    saveState(); renderPresetPicker(); renderEditor(); renderTimer();
+  });
+});
+function stepDefault(d) {
+  settings.defaultSpeed = roundSpeed(settings.defaultSpeed + d); saveSettings();
+  $('defSpeed').textContent = settings.defaultSpeed.toFixed(1) + ' mph';
+}
+$('defMinus').addEventListener('click', function () { stepDefault(-0.1); });
+$('defPlus').addEventListener('click', function () { stepDefault(0.1); });
+$('applySpeed').addEventListener('click', function () {
+  var s = settings.defaultSpeed.toFixed(1);
+  ask({ title: 'Apply ' + s + ' mph everywhere?', body: 'Every Walk segment in every preset will be set to ' + s + ' mph.', ok: 'Apply' }).then(function (ok) {
+    if (!ok) return;
+    presets.forEach(function (p) { p.segments.forEach(function (sg) { if (sg.posture === 'walk') sg.speed = settings.defaultSpeed; }); });
+    savePresets(); renderEditor(); renderTimer();
+  });
+});
+$('volume').addEventListener('input', function () { settings.volume = clamp(+this.value / 100, 0, 1); saveSettings(); });
+$('testChime').addEventListener('click', function () {
+  unlockAudio();
+  var p = state.status === 'idle' ? 'stand' : nextInfo().posture;
+  playChime(p);
+  if (settings.vibration && navigator.vibrate) { try { navigator.vibrate(POST[p].vib); } catch (e) {} }
+});
+$('vibration').addEventListener('change', function () { settings.vibration = this.checked; saveSettings(); });
+$('reminderRepeat').addEventListener('change', function () { settings.reminderRepeat = this.checked; saveSettings(); scheduleDue(); });
+$('dailyGoal').addEventListener('change', function () { settings.dailyGoal = clamp(Math.round(+this.value || 60), 5, 600); this.value = settings.dailyGoal; saveSettings(); renderStats(); });
+function renderDays() {
+  var box = $('dayPick'), letters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  box.innerHTML = letters.map(function (l, i) {
+    return '<button type="button" data-i="' + i + '" aria-pressed="' + settings.activeDays[i] + '" aria-label="' + DAY_SHORT[i] + '">' + l + '</button>';
+  }).join('');
+}
+$('dayPick').addEventListener('click', function (e) {
+  var btn = e.target.closest('button'); if (!btn) return;
+  var i = +btn.getAttribute('data-i'), next = settings.activeDays.slice();
+  next[i] = !next[i];
+  if (next.indexOf(true) < 0) return;
+  settings.activeDays = next; saveSettings(); renderDays(); renderStats();
+});
+Array.prototype.forEach.call(document.querySelectorAll('[data-days]'), function (b) {
+  b.addEventListener('click', function () {
+    var m = { weekdays: '0111110', all: '1111111', mwf: '0101010', tth: '0010100' }[b.getAttribute('data-days')];
+    settings.activeDays = m.split('').map(function (c) { return c === '1'; });
+    saveSettings(); renderDays(); renderStats();
+  });
+});
+$('notifications').addEventListener('change', function () {
+  var box = this, note = $('notifNote');
+  note.hidden = true;
+  if (!box.checked) { settings.notifications = false; saveSettings(); return; }
+  if (!('Notification' in window)) { box.checked = false; note.textContent = 'This browser does not support notifications. Chimes and vibration still work.'; note.hidden = false; return; }
+  var done = function (perm) {
+    if (perm === 'granted') { settings.notifications = true; saveSettings(); }
+    else { box.checked = false; settings.notifications = false; saveSettings(); note.textContent = 'Notifications were not allowed. You can change this in your browser site settings.'; note.hidden = false; }
+  };
+  try {
+    var r = Notification.requestPermission(done);
+    if (r && r.then) r.then(done);
+  } catch (e) { done('denied'); }
+});
+$('exportBtn').addEventListener('click', function () {
+  var data = { app: 'appaday-166-standing-desk-interval-coach', version: 1, exported: new Date().toString(), settings: settings, presets: presets, log: log };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'desk-coach-' + dayKey(Date.now()) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+});
+$('importBtn').addEventListener('click', function () { $('importFile').value = ''; $('importFile').click(); });
+$('importFile').addEventListener('change', function () {
+  var f = this.files && this.files[0];
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    var data;
+    try { data = JSON.parse(rd.result); } catch (e) { data = null; }
+    if (!data || !Array.isArray(data.log) || !Array.isArray(data.presets)) { $('dataNote').textContent = 'That file is not a Desk Coach export.'; return; }
+    ask({ title: 'Replace all data?', body: 'Import ' + data.log.length + ' log entries and ' + data.presets.length + ' presets. This replaces what is on this device now.', ok: 'Import', danger: true }).then(function (ok) {
+      if (!ok) return;
+      endSession();
+      settings = cleanSettings(data.settings); presets = cleanPresets(data.presets, settings.defaultSpeed);
+      log = cleanLog(data.log).map(function (e) { if (e.end === null) e.end = e.start; return e; }).filter(function (e) { return e.end > e.start; });
+      if (!presets.some(function (p) { return p.id === settings.activePresetId; })) settings.activePresetId = presets[0].id;
+      state = freshState();
+      saveSettings(); savePresets(); saveLog(); saveState();
+      $('dataNote').textContent = 'Imported ' + log.length + ' entries.';
+      renderSettings(); renderAll();
+    });
+  };
+  rd.readAsText(f);
+});
+$('clearBtn').addEventListener('click', function () {
+  ask({ title: 'Clear all data?', body: 'This deletes your history, presets, and settings from this device. It cannot be undone. Export first if you want a copy.', ok: 'Clear everything', danger: true }).then(function (ok) {
+    if (!ok) return;
+    clearDue(); wakeOff(); hidePulse();
+    if (speedTimer) { clearTimeout(speedTimer); speedTimer = null; }
+    lsDel(K.settings); lsDel(K.presets); lsDel(K.state); lsDel(K.log);
+    settings = cleanSettings(null); presets = builtinPresets(settings.defaultSpeed); log = []; state = freshState();
+    pendingPosture = null; preSpeed = null;
+    $('dataNote').textContent = 'All data cleared.';
+    renderSettings(); renderAll();
+  });
+});
+
+/* ---------- timer controls ---------- */
+$('mainBtn').addEventListener('click', function () {
+  if (state.status === 'idle') { if (pendingPosture) goAdhoc(pendingPosture, preSpeed); else startPlan(); }
+  else if (state.status === 'running') pause();
+  else resume();
+});
+$('nextBtn').addEventListener('click', goNext);
+$('backBtn').addEventListener('click', goBack);
+$('switchBtn').addEventListener('click', goNext);
+$('endBtn').addEventListener('click', endSession);
+Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
+  c.addEventListener('click', function () {
+    var p = c.getAttribute('data-p');
+    if (state.status !== 'idle') { goAdhoc(p); return; }
+    pendingPosture = pendingPosture === p ? null : p;
+    if (pendingPosture === 'walk') { preSpeed = preSpeed || walkSpeedFor('walk', getPreset(settings.activePresetId)); liveSpeed = preSpeed; }
+    renderTimer();
+  });
+});
+$('spdMinus').addEventListener('click', function () { nudgeSpeed(-0.1); });
+$('spdPlus').addEventListener('click', function () { nudgeSpeed(0.1); });
+$('rememberSpeed').addEventListener('change', function () {
+  settings.rememberSpeed = this.checked; saveSettings();
+  if (this.checked && !speedTimer && state.status !== 'idle' && state.posture === 'walk' && !state.adhoc && !state.inBreak) {
+    var seg = getPreset(state.presetId).segments[state.segIndex];
+    if (seg && seg.posture === 'walk') { seg.speed = state.speed; savePresets(); }
+  }
+});
+
+/* ---------- lifecycle ---------- */
+function heartbeat() { if (state.status === 'running') { state.lastSeen = Date.now(); saveState(); } }
+setInterval(heartbeat, 30000);
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { heartbeat(); return; }
+  heartbeat();
+  if (state.status === 'running') { checkNudge(); wakeOn(); }
+  renderAll();
+});
+window.addEventListener('pagehide', heartbeat);
+
+var statTick = 0;
+setInterval(function () {
+  renderTimer();
+  if (++statTick >= 20 || dayKey(Date.now()) !== lastStatsKey) { statTick = 0; renderStats(); }
+}, 250);
+
+function boot() {
+  if (SCALE > 1) { $('testBadge').hidden = false; $('testBadge').textContent = 'TEST x' + SCALE; }
+  pruneLog();
+  if (!presets.some(function (p) { return p.id === settings.activePresetId; })) { settings.activePresetId = presets[0].id; saveSettings(); }
+  if (state.status !== 'idle' && !presets.some(function (p) { return p.id === state.presetId; })) state.presetId = presets[0].id;
+  liveSpeed = state.speed || settings.defaultSpeed;
+  renderAll();
+  if (state.status === 'running') {
+    var gap = Date.now() - (state.lastSeen || state.segStartAt);
+    if (gap > STALE_MS) {
+      var seen = new Date(state.lastSeen || state.segStartAt);
+      var t = seen.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      ask({ title: 'Welcome back', body: 'Your ' + POST[state.posture].label.toLowerCase() + ' segment was still running when this page was last open at ' + t + '. End it at that time, or keep it running through now?',
+        ok: 'End at ' + t, cancel: 'Keep running' }).then(function (endIt) {
+        if (endIt) {
+          var at = state.lastSeen || state.segStartAt;
+          closeEntry(at);
+          var keep = state.presetId; state = freshState(); state.presetId = keep;
+          saveState(); clearDue(); wakeOff(); renderAll();
+        } else { heartbeat(); checkNudge(); wakeOn(); renderAll(); }
+      });
+      return;
+    }
+    heartbeat(); checkNudge(); wakeOn();
+  }
+}
+boot();
+})();
+</script>
+</body>
+</html>
